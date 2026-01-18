@@ -81,35 +81,13 @@ export function useAzureTTS(settings: AzureSettings) {
     // Update current word index immediately
     if (currentIndex !== -1) {
       setCurrentWordIndex(currentIndex);
-
-      // Check if we've reached the last word
-      if (synthesisCompleteRef.current && currentIndex === boundariesRef.current.length - 1) {
-        const lastWord = boundariesRef.current[currentIndex];
-        const timeSinceLastWord = currentPlaybackTime - lastWord.audioOffset;
-        const wordDuration = 100; // Give 100ms for the last word/punctuation to play
-
-        console.log(`🔍 Last word check: current=${currentPlaybackTime}ms, lastWordOffset=${lastWord.audioOffset}ms, timeSince=${timeSinceLastWord}ms, threshold=${wordDuration}ms, willStop=${timeSinceLastWord >= wordDuration}`);
-
-        // Only stop if we've actually passed the word's start time (accounting for lookahead)
-        if (timeSinceLastWord >= wordDuration) {
-          console.log(`🎵 Audio playback ended (last word finished). Word: "${lastWord.text}", offset: ${lastWord.audioOffset}ms, current: ${currentPlaybackTime}ms, time since: ${timeSinceLastWord}ms`);
-          isPlayingRef.current = false;
-          if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-            animationFrameRef.current = null;
-          }
-          setState('idle');
-          setCurrentWordIndex(-1);
-          return;
-        }
-      }
     }
 
     // Log less frequently to reduce console spam (every 500ms)
     if (Math.floor(currentPlaybackTime / 500) !== Math.floor((currentPlaybackTime - 16) / 500)) {
       const currentWord = currentIndex >= 0 ? boundariesRef.current[currentIndex] : null;
       console.log(
-        `⏱️ ${currentPlaybackTime.toFixed(0)}ms | Word [${currentIndex}]: "${currentWord?.text}" @ ${currentWord?.audioOffset}ms | Total: ${boundariesRef.current.length} | Complete: ${synthesisCompleteRef.current} | IsLast: ${currentIndex === boundariesRef.current.length - 1}`
+        `⏱️ ${currentPlaybackTime.toFixed(0)}ms | Word [${currentIndex}]: "${currentWord?.text}" @ ${currentWord?.audioOffset}ms | Total: ${boundariesRef.current.length} | Complete: ${synthesisCompleteRef.current}`
       );
     }
 
@@ -218,17 +196,26 @@ export function useAzureTTS(settings: AzureSettings) {
         }
         setAudioData(combined.buffer);
 
-        // Mark synthesis as complete so we can now detect the real last word
+        // Mark synthesis as complete
         synthesisCompleteRef.current = true;
         console.log('✅ Synthesis completed - now have all', boundariesRef.current.length, 'word boundaries');
 
         // Calculate audio duration from file size
         // For MP3 at 48kbps, approximate duration: bytes * 8 / bitrate (in seconds)
         const estimatedDurationMs = (totalLength * 8 / 48000) * 1000;
+
+        // Use duration-based stop for all voices
         const currentPlaybackTime = Date.now() - playbackStartTimeRef.current;
         const remainingTime = Math.max(100, estimatedDurationMs - currentPlaybackTime + 300); // Add 300ms buffer
 
         console.log(`🕐 Estimated audio duration: ${estimatedDurationMs}ms, current playback: ${currentPlaybackTime}ms, will stop in: ${remainingTime}ms`);
+
+        // Start playback now if not already started
+        if (!isPlayingRef.current) {
+          playbackStartTimeRef.current = Date.now();
+          isPlayingRef.current = true;
+          setState('playing');
+        }
 
         // Clear any existing timeout
         if (stopTimeoutRef.current) {
@@ -247,17 +234,6 @@ export function useAzureTTS(settings: AzureSettings) {
           setCurrentWordIndex(-1);
           stopTimeoutRef.current = null;
         }, remainingTime);
-
-        // If we have no word boundaries, start playback now if not already started
-        if (boundariesRef.current.length === 0) {
-          console.log('⚠️ No word boundaries received - using fallback mode');
-
-          if (!isPlayingRef.current) {
-            playbackStartTimeRef.current = Date.now();
-            isPlayingRef.current = true;
-            setState('playing');
-          }
-        }
       };
 
       synthesizer.SynthesisCanceled = (_s: any, e: any) => {

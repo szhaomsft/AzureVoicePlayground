@@ -194,6 +194,7 @@ export function TextInput({
             <option value="promotional">Promotional/Marketing</option>
             <option value="vlog">Vlog/Social Media</option>
             <option value="business">Business/Professional</option>
+            <option value="callcenter">Call Center/Customer Care</option>
             <option value="standup">Stand-up Comedy</option>
             <option value="enthusiastic">Enthusiastic/Excited</option>
             <option value="casual">Casual Conversation</option>

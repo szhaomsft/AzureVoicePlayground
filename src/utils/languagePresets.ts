@@ -13,6 +13,7 @@ export interface LanguagePresets {
   enthusiastic: string;
   casual: string;
   hesitant: string;
+  callcenter: string;
 }
 
 // Podcast-only presets for languages where we only have one sample
@@ -77,7 +78,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh boy, here we go. You know, I walked into this improv show, and I thought, 'Hey, this could be fun. Maybe they'll have a surprise for me.' Well, guess what? The surprise was that I got roped into doing standup for you folks.",
     enthusiastic: "Oh my gosh, that's AMAZING news! Congratulations! How are you feeling about it all? Any excitement, nerves, or a mix of both? Tell me everything!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with lots of laughs, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil is your best bet.",
-    hesitant: "So, uh, I was thinking—no, I mean, I was wondering if, um, if you might want to go to the, uh, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite."
+    hesitant: "So, uh, I was thinking—no, I mean, I was wondering if, um, if you might want to go to the, uh, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite.",
+    callcenter: "Thank you for calling customer support. My name is Sarah, and I'll be happy to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you right away."
   },
   'zh-CN': {
     podcast: "欢迎来到我们关于海洋生物学奇妙世界的节目。从深海到海岸,我们将探索水下世界的奇迹和生活在那里的神奇生物。",
@@ -92,7 +94,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "哦天哪，又来了。你知道，我走进这个即兴表演，我想，嘿，这可能会很有趣。你猜怎么着？惊喜就是我被拉去给你们做单口相声。",
     enthusiastic: "哦天哪，这真是太棒的消息了！恭喜！你对此感觉如何？兴奋、紧张，还是两者兼有？",
     casual: "哦不，我不是要让你失望！这样如何：如果你想要一些古怪有趣、充满欢笑的东西，那就选蓝人乐队。如果你想要一些令人敬畏和神奇的东西，太阳马戏团是你最好的选择。",
-    hesitant: "所以，呃，我在想——不，我的意思是，我在想，嗯，你是否想去，呃，周五去那家新的意大利餐厅？我听说它真的——怎么说呢——哦，精致。"
+    hesitant: "所以，呃，我在想——不，我的意思是，我在想，嗯，你是否想去，呃，周五去那家新的意大利餐厅？我听说它真的——怎么说呢——哦，精致。",
+    callcenter: "感谢您致电客户服务中心。我是李明，很高兴为您服务。我了解到您的账户遇到了一些问题。让我为您查询相关信息，我会立即帮您解决这个问题。"
   },
   'de-DE': {
     podcast: "Willkommen zu unserem Podcast über die faszinierende Welt der Meeresbiologie. Von den Tiefen des Ozeans bis zu den Küsten werden wir die Wunder der Unterwasserwelt und die erstaunlichen Kreaturen erkunden.",
@@ -107,7 +110,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh je, jetzt geht's los. Wissen Sie, ich kam zu dieser Improv-Show und dachte: 'Hey, das könnte lustig werden.' Die Überraschung war, dass ich hier Stand-up für Sie machen muss.",
     enthusiastic: "Oh mein Gott, das sind ja fantastische Neuigkeiten! Herzlichen Glückwunsch! Wie fühlen Sie sich dabei? Aufgeregt, nervös oder beides?",
     casual: "Oh nein, das wollte ich nicht! Wie wäre es damit: Wenn Sie etwas Skurriles mit viel Lachen wollen, nehmen Sie die Blue Man Group. Für etwas Magisches ist Cirque du Soleil die beste Wahl.",
-    hesitant: "Also, äh, ich habe gedacht—nein, ich meine, ich habe mich gefragt, ob, ähm, ob Sie vielleicht Freitag in das, äh, neue italienische Restaurant gehen möchten?"
+    hesitant: "Also, äh, ich habe gedacht—nein, ich meine, ich habe mich gefragt, ob, ähm, ob Sie vielleicht Freitag in das, äh, neue italienische Restaurant gehen möchten?",
+    callcenter: "Vielen Dank für Ihren Anruf beim Kundendienst. Mein Name ist Anna, und ich helfe Ihnen gerne weiter. Ich verstehe, dass Sie ein Problem mit Ihrem Konto haben. Lassen Sie mich Ihre Informationen abrufen und schauen, wie ich Ihnen umgehend helfen kann."
   },
   'en-GB': {
     podcast: "Welcome to our programme exploring the fascinating world of marine biology. From the depths of the ocean to coastal waters, we'll discover the wonders of underwater life and the remarkable creatures that inhabit these environments.",
@@ -122,7 +126,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh blimey, here we go. You know, I walked into this improv show, and I thought, 'Right, this could be fun. Maybe they'll have a surprise for me.' Well, guess what? The surprise was that I got roped into doing standup for you lot.",
     enthusiastic: "Oh my goodness, that's brilliant news! Congratulations! How are you feeling about it all? Any excitement, nerves, or a mix of both? Tell me everything!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with lots of laughs, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil is your best bet.",
-    hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite."
+    hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite.",
+    callcenter: "Thank you for calling customer support. My name is Emily, and I'll be pleased to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you straight away."
   },
   'en-AU': {
     podcast: "G'day and welcome to our show about the amazing world of marine biology. From the deep blue ocean to our beautiful coastlines, we'll explore the incredible underwater world and the fascinating creatures that call it home.",
@@ -137,7 +142,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh crikey, here we go. You know, I rocked up to this improv show, and I thought, 'Yeah, this could be a laugh. Maybe they'll have a surprise for me.' Well, guess what? The surprise was that I got roped into doing standup for you mob.",
     enthusiastic: "Oh my gosh, that's bloody amazing news! Congratulations! How are you feeling about it all? Any excitement, nerves, or a bit of both? Tell me everything!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with heaps of laughs, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil is your best bet.",
-    hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite."
+    hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite.",
+    callcenter: "Thanks for calling customer support. My name is Jessica, and I'll be happy to help you out today. I understand you're having an issue with your account. Let me pull up your details and see how I can sort this out for you right away."
   },
   'en-CA': {
     podcast: "Welcome to our podcast about the wonderful world of marine biology. From the depths of the ocean to our coastal waters, we'll explore the amazing underwater ecosystems and the remarkable creatures that inhabit them.",
@@ -152,7 +158,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh boy, here we go. You know, eh, I walked into this improv show, and I thought, 'Hey, this could be fun. Maybe they'll have a surprise for me.' Well, guess what? The surprise was that I got roped into doing standup for you folks.",
     enthusiastic: "Oh my gosh, that's amazing news! Congratulations! How are you feeling about it all? Any excitement, nerves, or a mix of both? Tell me everything, eh!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with lots of laughs, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil is your best bet.",
-    hesitant: "So, uh, I was thinking—no, I mean, I was wondering if, um, if you might want to go to the, uh, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite, eh?"
+    hesitant: "So, uh, I was thinking—no, I mean, I was wondering if, um, if you might want to go to the, uh, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite, eh?",
+    callcenter: "Thank you for calling customer support. My name is Laura, and I'll be happy to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you right away."
   },
   'en-IN': {
     podcast: "Welcome to our programme on marine biology. We will explore the fascinating world beneath the oceans, from the deepest waters to coastal regions, and learn about the wonderful creatures that inhabit these environments.",
@@ -167,7 +174,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh my, here we go. You know, I walked into this improv show, and I thought, 'This could be interesting. Perhaps they'll have a surprise for me.' Well, what happened? The surprise was that I got roped into doing standup for you all.",
     enthusiastic: "Oh my goodness, that's wonderful news! Congratulations! How are you feeling about it all? Any excitement, nervousness, or perhaps a combination of both? Please tell me everything!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with lots of laughter, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil would be your best option.",
-    hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—ah yes, exquisite."
+    hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—ah yes, exquisite.",
+    callcenter: "Thank you for calling customer support. My name is Priya, and I shall be pleased to assist you today. I understand you are experiencing an issue with your account. Kindly allow me to access your information and see how I can help resolve this matter for you immediately."
   },
   'hi-IN': {
     podcast: "समुद्री जीव विज्ञान की आकर्षक दुनिया में आपका स्वागत है। गहरे समुद्र से लेकर तटीय क्षेत्रों तक, हम पानी के नीचे की अद्भुत दुनिया और वहां रहने वाले अद्भुत जीवों के बारे में जानेंगे।",
@@ -182,7 +190,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "अरे वाह, यहां हम चलते हैं। आप जानते हैं, मैं इस इम्प्रोव शो में चला गया, और मैंने सोचा, 'अरे, यह मजेदार हो सकता है। शायद उनके पास मेरे लिए एक आश्चर्य होगा।' खैर, अनुमान लगाओ क्या? आश्चर्य यह था कि मुझे आप लोगों के लिए स्टैंडअप करने के लिए रस्सी बांध दी गई।",
     enthusiastic: "अरे वाह, यह शानदार खबर है! बधाई हो! आप इस सब के बारे में कैसा महसूस कर रहे हैं? कोई उत्साह, घबराहट, या दोनों का मिश्रण? मुझे सब कुछ बताओ!",
     casual: "ओह नहीं, मैं निराश नहीं करना चाहता था! यह कैसे रहेगा: यदि आप बहुत सारी हंसी के साथ कुछ विचित्र और मजेदार चाहते हैं, तो ब्लू मैन ग्रुप के लिए जाएं। यदि आप कुछ विस्मयकारी और जादुई तलाश रहे हैं, तो Cirque du Soleil आपकी सबसे अच्छी शर्त है।",
-    hesitant: "तो, उम, मैं सोच रहा था—नहीं, मेरा मतलब है, मैं सोच रहा था कि, उम, यदि आप शुक्रवार को, उह, नए इतालवी रेस्तरां में जाना चाहते हैं? मैंने सुना है कि यह वास्तव में—शब्द क्या है—ओह, उत्तम है।"
+    hesitant: "तो, उम, मैं सोच रहा था—नहीं, मेरा मतलब है, मैं सोच रहा था कि, उम, यदि आप शुक्रवार को, उह, नए इतालवी रेस्तरां में जाना चाहते हैं? मैंने सुना है कि यह वास्तव में—शब्द क्या है—ओह, उत्तम है।",
+    callcenter: "ग्राहक सहायता केंद्र में कॉल करने के लिए धन्यवाद। मेरा नाम अनिता है, और मैं आज आपकी सहायता करने में प्रसन्न हूं। मैं समझती हूं कि आपके खाते में कोई समस्या हो रही है। कृपया मुझे आपकी जानकारी देखने दें और मैं तुरंत इसे हल करने में आपकी मदद करूंगी।"
   },
   'es-ES': {
     podcast: "Bienvenidos a nuestro programa sobre el fascinante mundo de la biología marina. Desde las profundidades del océano hasta las costas, exploraremos las maravillas del mundo submarino y las criaturas asombrosas que lo habitan.",
@@ -197,7 +206,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh vaya, aquí vamos. Sabéis, entré en este espectáculo de improvisación y pensé: 'Oye, esto podría ser divertido. Quizás tengan una sorpresa para mí.' Pues, ¿adivináis qué? La sorpresa fue que me obligaron a hacer monólogos para vosotros.",
     enthusiastic: "¡Oh Dios mío, esas son noticias increíbles! ¡Enhorabuena! ¿Cómo te sientes al respecto? ¿Emocionado, nervioso, o una mezcla de ambos? ¡Cuéntamelo todo!",
     casual: "¡Oh no, no quise decepcionarte! ¿Qué te parece esto? Si quieres algo peculiar y divertido con muchas risas, ve a ver Blue Man Group. Si buscas algo impresionante y mágico, Cirque du Soleil es tu mejor opción.",
-    hesitant: "Entonces, eh, estaba pensando—no, quiero decir, me preguntaba si, um, si tal vez quisieras ir al, eh, el nuevo restaurante italiano el viernes. He oído que es realmente—¿cuál es la palabra?—oh, exquisito."
+    hesitant: "Entonces, eh, estaba pensando—no, quiero decir, me preguntaba si, um, si tal vez quisieras ir al, eh, el nuevo restaurante italiano el viernes. He oído que es realmente—¿cuál es la palabra?—oh, exquisito.",
+    callcenter: "Gracias por llamar al servicio de atención al cliente. Mi nombre es Carmen, y estaré encantada de ayudarle hoy. Entiendo que está experimentando un problema con su cuenta. Permítame consultar su información y ver cómo puedo resolver esto para usted de inmediato."
   },
   'es-MX': {
     podcast: "Bienvenidos a nuestro podcast sobre el fascinante mundo de la biología marina. Desde las profundidades del mar hasta nuestras costas, exploraremos las maravillas del mundo submarino y las criaturas asombrosas que lo habitan.",
@@ -212,7 +222,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Ay güey, aquí vamos. Saben, entré a este show de improvisación y pensé: 'Órale, esto podría ser divertido. A lo mejor tienen una sorpresa para mí.' Pues, ¿adivinen qué? La sorpresa fue que me obligaron a hacer stand-up para ustedes.",
     enthusiastic: "¡Ay, qué padre! ¡Esas son noticias increíbles! ¡Felicidades! ¿Cómo te sientes al respecto? ¿Emocionado, nervioso, o una mezcla de ambos? ¡Cuéntamelo todo!",
     casual: "¡Ay no, no quise decepcionarte! ¿Qué te parece esto? Si quieres algo peculiar y divertido con muchas risas, ve a ver Blue Man Group. Si buscas algo impresionante y mágico, Cirque du Soleil es tu mejor opción.",
-    hesitant: "Entonces, eh, estaba pensando—no, o sea, me preguntaba si, este, si tal vez quisieras ir al, eh, el nuevo restaurante italiano el viernes. He oído que es realmente—¿cuál es la palabra?—ah sí, exquisito."
+    hesitant: "Entonces, eh, estaba pensando—no, o sea, me preguntaba si, este, si tal vez quisieras ir al, eh, el nuevo restaurante italiano el viernes. He oído que es realmente—¿cuál es la palabra?—ah sí, exquisito.",
+    callcenter: "Gracias por llamar a servicio al cliente. Mi nombre es María, y con gusto le atenderé el día de hoy. Entiendo que está teniendo un problema con su cuenta. Permítame consultar su información y ver cómo puedo ayudarle a resolver esto de inmediato."
   },
   'ja-JP': {
     podcast: "海洋生物学の魅力的な世界へようこそ。深海から沿岸まで、水中世界の驚異とそこに生息する驚くべき生き物たちについて探求していきます。",
@@ -227,7 +238,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "ああ、始まった。ほら、このインプロショーに入って、「ねえ、これは楽しいかもしれない。多分サプライズがあるだろう」と思ったんだ。で、どうなったと思う？サプライズは、あなた方のためにスタンドアップをやらされることだった。",
     enthusiastic: "わあ、それは素晴らしいニュースです！おめでとうございます！それについてどう感じていますか？興奮していますか、緊張していますか、それとも両方の混合ですか？すべて教えてください！",
     casual: "ああ、がっかりさせるつもりはなかったんだ！こうしよう：風変わりで楽しくて笑いがたくさんあるものが欲しいなら、ブルーマングループに行け。畏敬の念を起こさせる魔法のようなものを探しているなら、シルク・ドゥ・ソレイユがベストだ。",
-    hesitant: "えっと、その、考えていたんだ—いや、つまり、もし、えー、もしよかったら金曜日に、その、新しいイタリアンレストランに行きたいかなって。本当に—なんて言うか—ああ、絶品だって聞いたんだ。"
+    hesitant: "えっと、その、考えていたんだ—いや、つまり、もし、えー、もしよかったら金曜日に、その、新しいイタリアンレストランに行きたいかなって。本当に—なんて言うか—ああ、絶品だって聞いたんだ。",
+    callcenter: "カスタマーサポートにお電話いただきありがとうございます。私の名前は田中美咲と申します。本日はお客様のサポートをさせていただきます。アカウントに問題が発生しているとのことですね。お客様の情報を確認させていただき、すぐに解決できるようお手伝いさせていただきます。"
   },
   'fr-FR': {
     podcast: "Bienvenue dans notre émission sur le monde fascinant de la biologie marine. Des profondeurs océaniques aux côtes, nous explorerons les merveilles du monde sous-marin et les créatures extraordinaires qui l'habitent.",
@@ -242,7 +254,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh là là, c'est parti. Vous savez, je suis entré dans ce spectacle d'improvisation, et je me suis dit : 'Hé, ça pourrait être amusant. Peut-être qu'ils auront une surprise pour moi.' Eh bien, devinez quoi ? La surprise, c'est qu'on m'a obligé à faire du stand-up pour vous.",
     enthusiastic: "Oh mon Dieu, c'est une nouvelle incroyable ! Félicitations ! Comment vous sentez-vous à ce sujet ? Excité, nerveux, ou un mélange des deux ? Racontez-moi tout !",
     casual: "Oh non, je ne voulais pas vous décevoir ! Que diriez-vous de ceci : Si vous voulez quelque chose d'original et amusant avec beaucoup de rires, optez pour Blue Man Group. Si vous cherchez quelque chose d'impressionnant et magique, Cirque du Soleil est votre meilleur choix.",
-    hesitant: "Alors, euh, je pensais—non, je veux dire, je me demandais si, euh, si vous aimeriez aller au, euh, nouveau restaurant italien vendredi ? J'ai entendu dire que c'est vraiment—quel est le mot—oh, exquis."
+    hesitant: "Alors, euh, je pensais—non, je veux dire, je me demandais si, euh, si vous aimeriez aller au, euh, nouveau restaurant italien vendredi ? J'ai entendu dire que c'est vraiment—quel est le mot—oh, exquis.",
+    callcenter: "Merci d'avoir appelé le service client. Je m'appelle Sophie, et je serai ravie de vous aider aujourd'hui. Je comprends que vous rencontrez un problème avec votre compte. Permettez-moi de consulter vos informations et voir comment je peux résoudre cela pour vous immédiatement."
   },
   'fr-CA': {
     podcast: "Bienvenue à notre émission sur le merveilleux monde de la biologie marine. Des profondeurs de l'océan jusqu'aux côtes, nous explorerons les merveilles du monde sous-marin et les créatures remarquables qui l'habitent.",
@@ -257,7 +270,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh là là, ça commence. Vous savez, je suis entré dans ce spectacle d'improvisation, pis je me suis dit : 'Hé, ça pourrait être le fun. Peut-être qu'ils auront une surprise pour moi.' Ben, devinez quoi ? La surprise, c'est qu'on m'a obligé à faire du stand-up pour vous autres.",
     enthusiastic: "Oh mon Dieu, c'est une nouvelle incroyable ! Félicitations ! Comment tu te sens par rapport à ça ? Excité, nerveux, ou un mélange des deux ? Raconte-moi tout !",
     casual: "Oh non, je voulais pas te décevoir ! Que dirais-tu de ça : Si tu veux quelque chose d'original pis amusant avec ben des rires, va voir Blue Man Group. Si tu cherches quelque chose d'impressionnant pis magique, Cirque du Soleil est ton meilleur choix.",
-    hesitant: "Alors, euh, je pensais—non, je veux dire, je me demandais si, euh, si tu aimerais aller au, euh, nouveau restaurant italien vendredi ? J'ai entendu dire que c'est vraiment—quel est le mot—oh, exquis."
+    hesitant: "Alors, euh, je pensais—non, je veux dire, je me demandais si, euh, si tu aimerais aller au, euh, nouveau restaurant italien vendredi ? J'ai entendu dire que c'est vraiment—quel est le mot—oh, exquis.",
+    callcenter: "Merci d'avoir appelé le service à la clientèle. Je m'appelle Isabelle, et je serai heureuse de vous aider aujourd'hui. Je comprends que vous éprouvez un problème avec votre compte. Permettez-moi de consulter vos informations et voir comment je peux régler ça pour vous tout de suite."
   },
   'pt-BR': {
     podcast: "Bem-vindos ao nosso podcast sobre o fascinante mundo da biologia marinha. Das profundezas do oceano até as costas, vamos explorar as maravilhas do mundo submarino e as criaturas incríveis que o habitam.",
@@ -272,7 +286,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Ah cara, lá vamos nós. Sabe, eu entrei nesse show de improviso e pensei: 'Ei, isso pode ser divertido. Talvez eles tenham uma surpresa para mim.' Bem, adivinha o quê? A surpresa foi que me obrigaram a fazer stand-up para vocês.",
     enthusiastic: "Meu Deus, essa é uma notícia incrível! Parabéns! Como você está se sentindo sobre isso tudo? Empolgado, nervoso, ou uma mistura dos dois? Me conta tudo!",
     casual: "Ah não, não quis decepcionar! Que tal isso: Se você quer algo peculiar e divertido com muitas risadas, vá de Blue Man Group. Se você está procurando algo impressionante e mágico, Cirque du Soleil é sua melhor aposta.",
-    hesitant: "Então, é, eu estava pensando—não, quero dizer, eu estava me perguntando se, hum, se você talvez quisesse ir ao, é, o novo restaurante italiano na sexta-feira? Eu ouvi que é realmente—qual é a palavra—ah, requintado."
+    hesitant: "Então, é, eu estava pensando—não, quero dizer, eu estava me perguntando se, hum, se você talvez quisesse ir ao, é, o novo restaurante italiano na sexta-feira? Eu ouvi que é realmente—qual é a palavra—ah, requintado.",
+    callcenter: "Obrigada por ligar para o suporte ao cliente. Meu nome é Juliana, e terei o prazer de ajudá-lo hoje. Entendo que você está enfrentando um problema com sua conta. Deixe-me consultar suas informações e ver como posso resolver isso para você imediatamente."
   },
   'pt-PT': {
     podcast: "Bem-vindos ao nosso programa sobre o fascinante mundo da biologia marinha. Desde as profundezas do oceano até às costas, iremos explorar as maravilhas do mundo submarino e as criaturas extraordinárias que o habitam.",
@@ -287,7 +302,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh céus, cá vamos nós. Sabem, entrei neste espetáculo de improviso e pensei: 'Eh pá, isto pode ser divertido. Talvez tenham uma surpresa para mim.' Bem, adivinhem? A surpresa foi que me obrigaram a fazer stand-up para vocês.",
     enthusiastic: "Meu Deus, essa é uma notícia fantástica! Parabéns! Como se está a sentir em relação a isto tudo? Entusiasmado, nervoso, ou uma mistura dos dois? Conta-me tudo!",
     casual: "Oh não, não quis desiludir! Que tal isto: Se querem algo peculiar e divertido com muitas risadas, vão ao Blue Man Group. Se procuram algo impressionante e mágico, o Cirque du Soleil é a vossa melhor aposta.",
-    hesitant: "Então, é, eu estava a pensar—não, quer dizer, estava a perguntar-me se, hum, se talvez quisesses ir ao, é, o novo restaurante italiano na sexta-feira? Ouvi dizer que é realmente—qual é a palavra—ah, requintado."
+    hesitant: "Então, é, eu estava a pensar—não, quer dizer, estava a perguntar-me se, hum, se talvez quisesses ir ao, é, o novo restaurante italiano na sexta-feira? Ouvi dizer que é realmente—qual é a palavra—ah, requintado.",
+    callcenter: "Obrigada por contactar o apoio ao cliente. O meu nome é Sofia, e terei todo o gosto em ajudá-lo hoje. Compreendo que está a ter um problema com a sua conta. Permita-me consultar as suas informações e ver como posso resolver isto para si de imediato."
   },
   'it-IT': {
     podcast: "Benvenuti al nostro programma sul affascinante mondo della biologia marina. Dalle profondità dell'oceano alle coste, esploreremo le meraviglie del mondo sottomarino e le creature straordinarie che lo abitano.",
@@ -302,7 +318,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     standup: "Oh cavolo, eccoci qui. Sapete, sono entrato in questo spettacolo di improvvisazione e ho pensato: 'Ehi, questo potrebbe essere divertente. Forse avranno una sorpresa per me.' Beh, indovinate un po'? La sorpresa è stata che mi hanno costretto a fare stand-up per voi.",
     enthusiastic: "Oh mio Dio, questa è una notizia fantastica! Congratulazioni! Come ti senti riguardo a tutto questo? Eccitato, nervoso, o un mix di entrambi? Dimmi tutto!",
     casual: "Oh no, non volevo deluderti! Che ne dici di questo: Se vuoi qualcosa di stravagante e divertente con tante risate, scegli Blue Man Group. Se cerchi qualcosa di impressionante e magico, Cirque du Soleil è la tua scelta migliore.",
-    hesitant: "Allora, ehm, stavo pensando—no, voglio dire, mi chiedevo se, ehm, se forse vorresti andare al, ehm, nuovo ristorante italiano venerdì? Ho sentito che è davvero—qual è la parola—oh, squisito."
+    hesitant: "Allora, ehm, stavo pensando—no, voglio dire, mi chiedevo se, ehm, se forse vorresti andare al, ehm, nuovo ristorante italiano venerdì? Ho sentito che è davvero—qual è la parola—oh, squisito.",
+    callcenter: "Grazie per aver chiamato l'assistenza clienti. Mi chiamo Francesca, e sarò lieta di aiutarla oggi. Capisco che sta riscontrando un problema con il suo account. Mi permetta di consultare le sue informazioni e vedere come posso risolvere questo per lei immediatamente."
   },
 };
 
@@ -342,6 +359,7 @@ export function getPresetsForLanguage(langCode: string): LanguagePresets {
       enthusiastic: podcastText,
       casual: podcastText,
       hesitant: podcastText,
+      callcenter: podcastText,
     };
   }
 
