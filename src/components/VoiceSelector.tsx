@@ -81,12 +81,16 @@ export function VoiceSelector({
   console.log(`Search "${searchTerm}" - Found ${filteredVoices.length} voices. First 3:`,
     filteredVoices.slice(0, 3).map(v => ({ name: v.name, gender: v.gender })));
 
-  // Auto-select the first voice in filtered results when searching
+  // Auto-select the first voice in filtered results when searching or filtering
   useEffect(() => {
-    if (searchTerm && filteredVoices.length > 0) {
+    if (filteredVoices.length > 0) {
       const topVoice = filteredVoices[0];
-      if (topVoice.name !== selectedVoice) {
-        console.log('Auto-selecting top voice from search:', topVoice.name);
+      // Only auto-select if we're actively filtering (search term or preset filter is set)
+      // and the current selection is not in the filtered list
+      const isCurrentVoiceInFilteredList = filteredVoices.some(v => v.name === selectedVoice);
+
+      if ((searchTerm || filterPreset) && !isCurrentVoiceInFilteredList) {
+        console.log('Auto-selecting top voice from filtered list:', topVoice.name);
         onVoiceChange(topVoice.name);
       }
     }

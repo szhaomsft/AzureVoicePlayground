@@ -75,7 +75,7 @@ export async function fetchVoiceList(
           styleList: [],
           isFeatured: true,
           voiceType: 'Neural',
-          isNeuralHD: false,
+          isNeuralHD: true,
           keywords: ['MAI'],
           wordsPer: undefined,
         },
@@ -87,7 +87,7 @@ export async function fetchVoiceList(
           styleList: [],
           isFeatured: true,
           voiceType: 'Neural',
-          isNeuralHD: false,
+          isNeuralHD: true,
           keywords: ['MAI'],
           wordsPer: undefined,
         }

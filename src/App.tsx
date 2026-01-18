@@ -4,12 +4,11 @@ import { useAzureTTS } from './hooks/useAzureTTS';
 import { SettingsPanel } from './components/SettingsPanel';
 import { TextInput } from './components/TextInput';
 import { PlaybackControls } from './components/PlaybackControls';
+import { FeedbackButton } from './components/FeedbackButton';
 
 function App() {
   const { settings, updateSettings, isConfigured } = useSettings();
-  const [text, setText] = useState('Welcome to One Fish, Two Fish, the podcast that aims to make you laugh as you learn about the fascinating world of marine biology. From the depths of the deep blue to the shores of our coastlines, we\'ll explore the wonders of the underwater world and the creatures that call it home. Join us each week as we dive into the latest research, meet the experts in the field, and, discover the stories of the people dedicated to protecting our oceans along with the incredible species that inhabit them.');
-
-  console.log('Current settings in App:', settings);
+  const [text, setText] = useState('Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.');
 
   const { state, error, wordBoundaries, currentWordIndex, audioData, synthesize, pause, resume, stop } =
     useAzureTTS(settings);
@@ -67,9 +66,17 @@ function App() {
 
         {/* Footer */}
         <div className="bg-gray-50 border-t border-gray-200 px-6 py-3">
-          <p className="text-xs text-gray-600 text-center">
-            Built with React, TypeScript, and Azure Cognitive Services Speech SDK
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-600">
+              Built with React, TypeScript, and Azure Cognitive Services Speech SDK
+            </p>
+            <FeedbackButton
+              text={text}
+              selectedVoice={settings.selectedVoice}
+              region={settings.region}
+              audioData={audioData}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -40,7 +40,15 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <p className="text-xs text-gray-500">
-            Your API key is stored locally in your browser
+            Your API key is stored locally in your browser.{' '}
+            <a
+              href="https://portal.azure.com/#view/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/~/SpeechServices"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              Get your API key from Azure Portal
+            </a>
           </p>
         </div>
 
@@ -91,7 +99,16 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
             Getting Started
           </h3>
           <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Get your API key from Azure Portal</li>
+            <li>
+              <a
+                href="https://portal.azure.com/#view/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/~/SpeechServices"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                Get your API key from Azure Portal
+              </a>
+            </li>
             <li>Select your Azure region</li>
             <li>Choose a voice from the list</li>
             <li>Enter text and click Play</li>
