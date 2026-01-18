@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install)",
       "Bash(npm run dev)",
-      "Bash(timeout 5 tail:*)"
+      "Bash(timeout 5 tail:*)",
+      "Bash(npm run build)",
+      "Bash(npm install -D gh-pages)",
+      "Bash(npm run deploy)"
     ]
   }
 }

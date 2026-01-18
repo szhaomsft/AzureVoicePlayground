@@ -17,13 +17,10 @@ export function useAzureTTS(settings: AzureSettings) {
   const isPlayingRef = useRef<boolean>(false);
   const boundariesRef = useRef<WordBoundary[]>([]);
   const trackingStartedRef = useRef<boolean>(false);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
-  const audioDurationRef = useRef<number>(0);
-  const mediaSourceRef = useRef<MediaSource | null>(null);
-  const sourceBufferRef = useRef<SourceBuffer | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
   const synthesisCompleteRef = useRef<boolean>(false);
   const useFallbackPlaybackRef = useRef<boolean>(false);
+  const inputTextRef = useRef<string>('');
+  const stopTimeoutRef = useRef<number | null>(null);
 
   const initializeSynthesizer = useCallback(() => {
     if (synthesizerRef.current) {
@@ -59,9 +56,9 @@ export function useAzureTTS(settings: AzureSettings) {
 
     // Get current playback time from the actual player if available
     let currentPlaybackTime = Date.now() - playbackStartTimeRef.current;
-    if (playerRef.current && typeof playerRef.current.currentTime === 'function') {
+    if (playerRef.current && playerRef.current.currentTime) {
       try {
-        const playerTime = playerRef.current.currentTime();
+        const playerTime = playerRef.current.currentTime;
         if (playerTime > 0) {
           currentPlaybackTime = playerTime * 1000; // Convert to milliseconds
         }
@@ -85,12 +82,17 @@ export function useAzureTTS(settings: AzureSettings) {
     if (currentIndex !== -1) {
       setCurrentWordIndex(currentIndex);
 
-      // Only check for last word if synthesis is complete
+      // Check if we've reached the last word
       if (synthesisCompleteRef.current && currentIndex === boundariesRef.current.length - 1) {
         const lastWord = boundariesRef.current[currentIndex];
-        // If we've been on the last word for more than 1 second, stop playback
-        if (currentPlaybackTime > lastWord.audioOffset + 1000) {
-          console.log(`🎵 Audio playback ended (1s after last word highlighted). Current time: ${currentPlaybackTime}ms, Last word at: ${lastWord.audioOffset}ms`);
+        const timeSinceLastWord = currentPlaybackTime - lastWord.audioOffset;
+        const wordDuration = 100; // Give 100ms for the last word/punctuation to play
+
+        console.log(`🔍 Last word check: current=${currentPlaybackTime}ms, lastWordOffset=${lastWord.audioOffset}ms, timeSince=${timeSinceLastWord}ms, threshold=${wordDuration}ms, willStop=${timeSinceLastWord >= wordDuration}`);
+
+        // Only stop if we've actually passed the word's start time (accounting for lookahead)
+        if (timeSinceLastWord >= wordDuration) {
+          console.log(`🎵 Audio playback ended (last word finished). Word: "${lastWord.text}", offset: ${lastWord.audioOffset}ms, current: ${currentPlaybackTime}ms, time since: ${timeSinceLastWord}ms`);
           isPlayingRef.current = false;
           if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
@@ -107,7 +109,7 @@ export function useAzureTTS(settings: AzureSettings) {
     if (Math.floor(currentPlaybackTime / 500) !== Math.floor((currentPlaybackTime - 16) / 500)) {
       const currentWord = currentIndex >= 0 ? boundariesRef.current[currentIndex] : null;
       console.log(
-        `⏱️ ${currentPlaybackTime.toFixed(0)}ms | Word [${currentIndex}]: "${currentWord?.text}" @ ${currentWord?.audioOffset}ms | Total: ${boundariesRef.current.length} | Complete: ${synthesisCompleteRef.current}`
+        `⏱️ ${currentPlaybackTime.toFixed(0)}ms | Word [${currentIndex}]: "${currentWord?.text}" @ ${currentWord?.audioOffset}ms | Total: ${boundariesRef.current.length} | Complete: ${synthesisCompleteRef.current} | IsLast: ${currentIndex === boundariesRef.current.length - 1}`
       );
     }
 
@@ -134,6 +136,7 @@ export function useAzureTTS(settings: AzureSettings) {
       trackingStartedRef.current = false;
       synthesisCompleteRef.current = false;
       useFallbackPlaybackRef.current = false;
+      inputTextRef.current = text;
 
       const synthesizer = initializeSynthesizer();
 
@@ -146,7 +149,7 @@ export function useAzureTTS(settings: AzureSettings) {
       }, 1000);
 
       // Listen to word boundary events
-      synthesizer.wordBoundary = (s, e) => {
+      synthesizer.wordBoundary = (_s, e) => {
         const boundary: WordBoundary = {
           text: e.text,
           offset: e.textOffset,
@@ -182,7 +185,7 @@ export function useAzureTTS(settings: AzureSettings) {
       };
 
       // Listen to synthesis events - collect audio for download
-      synthesizer.synthesizing = (s, e) => {
+      synthesizer.synthesizing = (_s, e) => {
         if (e.result.audioData) {
           audioChunksRef.current.push(new Uint8Array(e.result.audioData));
 
@@ -201,7 +204,7 @@ export function useAzureTTS(settings: AzureSettings) {
         console.log('Synthesis started');
       };
 
-      synthesizer.synthesisCompleted = (s, e) => {
+      synthesizer.synthesisCompleted = (_s, e) => {
         // Combine all audio chunks for download
         const totalLength = audioChunksRef.current.reduce(
           (sum, chunk) => sum + chunk.length,
@@ -219,40 +222,45 @@ export function useAzureTTS(settings: AzureSettings) {
         synthesisCompleteRef.current = true;
         console.log('✅ Synthesis completed - now have all', boundariesRef.current.length, 'word boundaries');
 
-        // If we have no word boundaries, we need to start playback now and estimate duration
-        if (boundariesRef.current.length === 0) {
-          console.log('⚠️ No word boundaries received - using fallback audio duration detection');
+        // Calculate audio duration from file size
+        // For MP3 at 48kbps, approximate duration: bytes * 8 / bitrate (in seconds)
+        const estimatedDurationMs = (totalLength * 8 / 48000) * 1000;
+        const currentPlaybackTime = Date.now() - playbackStartTimeRef.current;
+        const remainingTime = Math.max(100, estimatedDurationMs - currentPlaybackTime + 300); // Add 300ms buffer
 
-          // Start playback if not already started
+        console.log(`🕐 Estimated audio duration: ${estimatedDurationMs}ms, current playback: ${currentPlaybackTime}ms, will stop in: ${remainingTime}ms`);
+
+        // Clear any existing timeout
+        if (stopTimeoutRef.current) {
+          clearTimeout(stopTimeoutRef.current);
+        }
+
+        // Set timeout to stop playback when audio ends
+        stopTimeoutRef.current = setTimeout(() => {
+          console.log('🎵 Audio playback ended (duration timeout)');
+          isPlayingRef.current = false;
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
+          }
+          setState('idle');
+          setCurrentWordIndex(-1);
+          stopTimeoutRef.current = null;
+        }, remainingTime);
+
+        // If we have no word boundaries, start playback now if not already started
+        if (boundariesRef.current.length === 0) {
+          console.log('⚠️ No word boundaries received - using fallback mode');
+
           if (!isPlayingRef.current) {
             playbackStartTimeRef.current = Date.now();
             isPlayingRef.current = true;
             setState('playing');
           }
-
-          // For MP3 at 48kbps, approximate duration: bytes * 8 / bitrate (in seconds)
-          const estimatedDurationMs = (totalLength * 8 / 48000) * 1000;
-          const currentPlaybackTime = Date.now() - playbackStartTimeRef.current;
-          const remainingTime = Math.max(0, estimatedDurationMs - currentPlaybackTime + 500); // Add 500ms buffer
-
-          console.log(`🕐 Estimated audio duration: ${estimatedDurationMs}ms, current playback: ${currentPlaybackTime}ms, will stop in: ${remainingTime}ms`);
-
-          setTimeout(() => {
-            if (isPlayingRef.current) {
-              console.log('🎵 Audio playback ended (fallback timeout)');
-              isPlayingRef.current = false;
-              if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-                animationFrameRef.current = null;
-              }
-              setState('idle');
-              setCurrentWordIndex(-1);
-            }
-          }, remainingTime);
         }
       };
 
-      synthesizer.canceled = (s, e) => {
+      synthesizer.SynthesisCanceled = (_s: any, e: any) => {
         console.error('Synthesis canceled:', e.errorDetails);
         setError(e.errorDetails || 'Synthesis was canceled');
         setState('error');

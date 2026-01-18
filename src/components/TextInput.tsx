@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { WordBoundary, SynthesisState } from '../types/azure';
 import { getLanguageFromVoice, getPresetsForLanguage } from '../utils/languagePresets';
+import { BUILD_TIMESTAMP } from '../buildTimestamp';
 
 interface TextInputProps {
   text: string;
@@ -95,7 +96,12 @@ export function TextInput({
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">Text to Synthesize</h2>
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-2xl font-bold text-gray-800">Text to Synthesize</h2>
+          <span className="text-xs text-gray-400">
+            Build: {new Date(BUILD_TIMESTAMP).toLocaleString()}
+          </span>
+        </div>
         <div className="flex gap-4 text-sm text-gray-600">
           <span>
             {wordCount} word{wordCount !== 1 ? 's' : ''}
@@ -119,18 +125,53 @@ export function TextInput({
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             <option value="">Voice Language ({currentLanguage})</option>
-            <option value="en-US">English (US)</option>
-            <option value="zh-CN">Chinese (Mandarin)</option>
+            <option value="ar-EG">Arabic (Egypt)</option>
+            <option value="ar-SA">Arabic (Saudi Arabia)</option>
+            <option value="bg-BG">Bulgarian</option>
+            <option value="ca-ES">Catalan</option>
+            <option value="cs-CZ">Czech</option>
+            <option value="cy-GB">Welsh</option>
+            <option value="da-DK">Danish</option>
             <option value="de-DE">German</option>
+            <option value="el-GR">Greek</option>
+            <option value="en-AU">English (Australia)</option>
+            <option value="en-CA">English (Canada)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="en-IN">English (India)</option>
+            <option value="en-US">English (US)</option>
             <option value="es-ES">Spanish (Spain)</option>
-            <option value="fr-FR">French</option>
+            <option value="es-MX">Spanish (Mexico)</option>
+            <option value="et-EE">Estonian</option>
+            <option value="fi-FI">Finnish</option>
+            <option value="fr-CA">French (Canada)</option>
+            <option value="fr-FR">French (France)</option>
+            <option value="he-IL">Hebrew</option>
+            <option value="hi-IN">Hindi</option>
+            <option value="hr-HR">Croatian</option>
+            <option value="hu-HU">Hungarian</option>
+            <option value="id-ID">Indonesian</option>
             <option value="it-IT">Italian</option>
             <option value="ja-JP">Japanese</option>
             <option value="ko-KR">Korean</option>
+            <option value="lt-LT">Lithuanian</option>
+            <option value="lv-LV">Latvian</option>
+            <option value="nb-NO">Norwegian</option>
+            <option value="nl-NL">Dutch</option>
+            <option value="pl-PL">Polish</option>
             <option value="pt-BR">Portuguese (Brazil)</option>
+            <option value="pt-PT">Portuguese (Portugal)</option>
+            <option value="ro-RO">Romanian</option>
             <option value="ru-RU">Russian</option>
-            <option value="ar-SA">Arabic</option>
-            <option value="hi-IN">Hindi</option>
+            <option value="sk-SK">Slovak</option>
+            <option value="sl-SI">Slovenian</option>
+            <option value="sr-RS">Serbian</option>
+            <option value="sv-SE">Swedish</option>
+            <option value="th-TH">Thai</option>
+            <option value="tr-TR">Turkish</option>
+            <option value="uk-UA">Ukrainian</option>
+            <option value="vi-VN">Vietnamese</option>
+            <option value="zh-CN">Chinese (Mandarin)</option>
+            <option value="zh-TW">Chinese (Taiwan)</option>
           </select>
         </div>
         <div>
