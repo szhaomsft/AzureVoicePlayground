@@ -17,6 +17,10 @@ export interface VoiceInfo {
   isNeuralHD?: boolean;
   keywords?: string[];
   wordsPer?: string;
+  voiceTag?: {
+    ContentCategories?: string[];
+    VoicePersonalities?: string[];
+  };
 }
 
 export interface WordBoundary {

@@ -23,6 +23,7 @@ export function useAzureTTS(settings: AzureSettings) {
   const sourceBufferRef = useRef<SourceBuffer | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const synthesisCompleteRef = useRef<boolean>(false);
+  const useFallbackPlaybackRef = useRef<boolean>(false);
 
   const initializeSynthesizer = useCallback(() => {
     if (synthesizerRef.current) {
@@ -132,17 +133,15 @@ export function useAzureTTS(settings: AzureSettings) {
       isPlayingRef.current = false;
       trackingStartedRef.current = false;
       synthesisCompleteRef.current = false;
+      useFallbackPlaybackRef.current = false;
 
       const synthesizer = initializeSynthesizer();
-
-      // Track if we should use fallback (no word boundaries)
-      let useFallbackPlayback = false;
 
       // Set a timeout - after 1 second, if no word boundary, use fallback mode
       const fallbackTimeout = setTimeout(() => {
         if (boundariesRef.current.length === 0) {
           console.log('⚠️ No word boundary received within 1 second - will start playback when audio arrives');
-          useFallbackPlayback = true;
+          useFallbackPlaybackRef.current = true;
         }
       }, 1000);
 
@@ -160,19 +159,23 @@ export function useAzureTTS(settings: AzureSettings) {
         console.log(`📍 Word boundary: "${boundary.text}" at ${boundary.audioOffset}ms (text offset: ${boundary.offset})`);
 
         if (boundariesRef.current.length === 1) {
-          // First word boundary - clear the fallback timeout and start playback
+          // First word boundary - clear the fallback timeout and disable fallback mode
           clearTimeout(fallbackTimeout);
-          useFallbackPlayback = false;
+          useFallbackPlaybackRef.current = false;
 
           const currentTime = Date.now();
           const adjustedStartTime = currentTime - boundary.audioOffset;
           playbackStartTimeRef.current = adjustedStartTime;
           console.log('📍 FIRST word boundary - starting playback. Word:', boundary.text, 'offset:', boundary.audioOffset, 'ms. Playback start:', adjustedStartTime, 'Current time:', currentTime);
 
-          // Start playing if we haven't already
+          // Start playing and tracking if we haven't already started
           if (!isPlayingRef.current) {
             isPlayingRef.current = true;
             setState('playing');
+            trackWordPosition();
+          } else {
+            // Already playing in fallback mode - just start tracking now with corrected timing
+            console.log('🔄 Switching from fallback mode to word boundary mode - restarting tracking');
             trackWordPosition();
           }
         }
@@ -184,7 +187,7 @@ export function useAzureTTS(settings: AzureSettings) {
           audioChunksRef.current.push(new Uint8Array(e.result.audioData));
 
           // Start playback on first audio chunk if using fallback mode
-          if (useFallbackPlayback && !isPlayingRef.current && audioChunksRef.current.length === 1) {
+          if (useFallbackPlaybackRef.current && !isPlayingRef.current && audioChunksRef.current.length === 1) {
             console.log('🎵 First audio chunk received (fallback mode) - starting playback');
             playbackStartTimeRef.current = Date.now();
             isPlayingRef.current = true;

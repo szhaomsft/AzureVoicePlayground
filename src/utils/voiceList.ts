@@ -59,6 +59,7 @@ export async function fetchVoiceList(
         isNeuralHD,
         keywords: Array.isArray(keywords) ? keywords : [],
         wordsPer: voice.WordsPerMinute,
+        voiceTag: voice.VoiceTag || {},
       };
     });
 

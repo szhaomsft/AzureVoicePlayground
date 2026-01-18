@@ -78,9 +78,6 @@ export function VoiceSelector({
     );
   });
 
-  console.log(`Search "${searchTerm}" - Found ${filteredVoices.length} voices. First 3:`,
-    filteredVoices.slice(0, 3).map(v => ({ name: v.name, gender: v.gender })));
-
   // Auto-select the first voice in filtered results when searching or filtering
   useEffect(() => {
     if (filteredVoices.length > 0) {
@@ -178,12 +175,24 @@ export function VoiceSelector({
         )}
 
         {!loading &&
-          filteredVoices.map((voice) => (
-            <option key={voice.name} value={voice.name}>
-              {voice.isFeatured ? '⭐ ' : ''}
-              {voice.name} - {voice.description}
-            </option>
-          ))}
+          filteredVoices.map((voice) => {
+            // Combine ContentCategories and VoicePersonalities from VoiceTag
+            const tags: string[] = [];
+            if (voice.voiceTag?.ContentCategories) {
+              tags.push(...voice.voiceTag.ContentCategories);
+            }
+            if (voice.voiceTag?.VoicePersonalities) {
+              tags.push(...voice.voiceTag.VoicePersonalities);
+            }
+            const tagsText = tags.length > 0 ? ` [${tags.join(', ')}]` : '';
+
+            return (
+              <option key={voice.name} value={voice.name}>
+                {voice.isFeatured ? '⭐ ' : ''}
+                {voice.name} - {voice.description}{tagsText}
+              </option>
+            );
+          })}
       </select>
 
       <div className="text-xs text-gray-500">
