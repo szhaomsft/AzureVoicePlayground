@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SynthesisState } from '../types/azure';
-import { downloadAudioAsMP3 } from '../utils/audioUtils';
 
 interface PlaybackControlsProps {
   state: SynthesisState;
@@ -25,17 +24,11 @@ export function PlaybackControls({
   onResume,
   onStop,
 }: PlaybackControlsProps) {
+  const [showHelp, setShowHelp] = useState(false);
   const canPlay = hasText && isConfigured && state === 'idle';
   const canPause = state === 'playing';
   const canResume = state === 'paused';
   const canStop = state === 'playing' || state === 'paused' || state === 'synthesizing';
-  const canSave = audioData !== null && state === 'idle';
-
-  const handleSave = () => {
-    if (audioData) {
-      downloadAudioAsMP3(audioData);
-    }
-  };
 
   const getStateDisplay = () => {
     switch (state) {
@@ -144,26 +137,27 @@ export function PlaybackControls({
         >
           ⏹ Stop
         </button>
-      </div>
 
-      {/* Save Button */}
-      <div className="pt-2 border-t border-gray-200">
+        {/* Help Button */}
         <button
-          onClick={handleSave}
-          disabled={!canSave}
-          className="w-full px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-purple-600"
-          title={!audioData ? 'Play audio first to enable saving' : 'Save as MP3'}
+          onClick={() => setShowHelp(!showHelp)}
+          className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          title="Help"
         >
-          💾 Save as MP3
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          </svg>
         </button>
       </div>
 
-      {/* Help Text */}
-      <div className="text-xs text-gray-500 space-y-1">
-        <p>• Click Play to start synthesis and playback</p>
-        <p>• Word highlighting shows the current word being spoken</p>
-        <p>• Save the audio after playback completes</p>
-      </div>
+      {/* Help Text (collapsible) */}
+      {showHelp && (
+        <div className="text-xs text-gray-500 space-y-1 pt-2 mt-2 border-t border-gray-200">
+          <p>• Click Play to start synthesis and playback</p>
+          <p>• Word highlighting shows the current word being spoken</p>
+          <p>• Save audio from history panel below</p>
+        </div>
+      )}
     </div>
   );
 }

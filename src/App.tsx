@@ -1,17 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { useAzureTTS } from './hooks/useAzureTTS';
+import { useHistoryStorage } from './hooks/useHistoryStorage';
 import { SettingsPanel } from './components/SettingsPanel';
 import { TextInput } from './components/TextInput';
 import { PlaybackControls } from './components/PlaybackControls';
 import { FeedbackButton } from './components/FeedbackButton';
+import { HistoryPanel } from './components/HistoryPanel';
+import { getAudioDuration } from './utils/audioUtils';
 
 function App() {
   const { settings, updateSettings, isConfigured } = useSettings();
   const [text, setText] = useState('Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.');
+  const { history, addToHistory, removeFromHistory, clearHistory } = useHistoryStorage();
+  const previousAudioDataRef = useRef<ArrayBuffer | null>(null);
 
   const { state, error, wordBoundaries, currentWordIndex, audioData, synthesize, pause, resume, stop } =
     useAzureTTS(settings);
+
+  // Add to history when synthesis completes successfully with NEW audio
+  useEffect(() => {
+    if (audioData && audioData !== previousAudioDataRef.current) {
+      // Update ref to track this audio
+      previousAudioDataRef.current = audioData;
+
+      // Calculate audio duration and add to history
+      getAudioDuration(audioData)
+        .then((duration) => {
+          addToHistory({
+            timestamp: Date.now(),
+            text: text,
+            voice: settings.selectedVoice,
+            region: settings.region,
+            audioData: audioData,
+            duration: duration,
+          });
+        })
+        .catch((err) => {
+          console.error('Failed to get audio duration:', err);
+          // Add to history anyway with estimated duration
+          const estimatedDuration = (audioData.byteLength * 8 / 48000);
+          addToHistory({
+            timestamp: Date.now(),
+            text: text,
+            voice: settings.selectedVoice,
+            region: settings.region,
+            audioData: audioData,
+            duration: estimatedDuration,
+          });
+        });
+    }
+  }, [audioData, text, settings.selectedVoice, settings.region, addToHistory]);
 
   const handlePlay = () => {
     synthesize(text);
@@ -64,7 +103,14 @@ function App() {
           </div>
         </div>
 
-        {/* Footer */}
+        {/* History Panel */}
+        <HistoryPanel
+          history={history}
+          onClearHistory={clearHistory}
+          onDeleteEntry={removeFromHistory}
+        />
+
+        {/* Footer with Feedback Button */}
         <div className="bg-gray-50 border-t border-gray-200 px-6 py-3">
           <div className="flex items-center justify-between">
             <p className="text-xs text-gray-600">
