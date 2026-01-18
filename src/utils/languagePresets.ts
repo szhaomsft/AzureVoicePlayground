@@ -14,6 +14,7 @@ export interface LanguagePresets {
   casual: string;
   hesitant: string;
   callcenter: string;
+  explainer: string;
 }
 
 // Podcast-only presets for languages where we only have one sample
@@ -79,7 +80,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh my gosh, that's AMAZING news! Congratulations! How are you feeling about it all? Any excitement, nerves, or a mix of both? Tell me everything!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with lots of laughs, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil is your best bet.",
     hesitant: "So, uh, I was thinking—no, I mean, I was wondering if, um, if you might want to go to the, uh, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite.",
-    callcenter: "Thank you for calling customer support. My name is Sarah, and I'll be happy to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you right away."
+    callcenter: "Thank you for calling customer support. My name is Sarah, and I'll be happy to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you right away.",
+    explainer: "Let me explain how photosynthesis works. Plants use sunlight, water, and carbon dioxide to create energy. The process happens in the chloroplasts, which contain chlorophyll - the green pigment that gives plants their color. When sunlight hits the leaves, it triggers a chemical reaction that converts these ingredients into glucose and oxygen."
   },
   'zh-CN': {
     podcast: "欢迎来到我们关于海洋生物学奇妙世界的节目。从深海到海岸,我们将探索水下世界的奇迹和生活在那里的神奇生物。",
@@ -95,7 +97,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "哦天哪，这真是太棒的消息了！恭喜！你对此感觉如何？兴奋、紧张，还是两者兼有？",
     casual: "哦不，我不是要让你失望！这样如何：如果你想要一些古怪有趣、充满欢笑的东西，那就选蓝人乐队。如果你想要一些令人敬畏和神奇的东西，太阳马戏团是你最好的选择。",
     hesitant: "所以，呃，我在想——不，我的意思是，我在想，嗯，你是否想去，呃，周五去那家新的意大利餐厅？我听说它真的——怎么说呢——哦，精致。",
-    callcenter: "感谢您致电客户服务中心。我是李明，很高兴为您服务。我了解到您的账户遇到了一些问题。让我为您查询相关信息，我会立即帮您解决这个问题。"
+    callcenter: "感谢您致电客户服务中心。我是李明，很高兴为您服务。我了解到您的账户遇到了一些问题。让我为您查询相关信息，我会立即帮您解决这个问题。",
+    explainer: "让我来解释光合作用的工作原理。植物利用阳光、水和二氧化碳来产生能量。这个过程发生在叶绿体中，叶绿体含有叶绿素——这种绿色色素使植物呈现绿色。当阳光照射到叶子上时，它会触发一个化学反应，将这些成分转化为葡萄糖和氧气。"
   },
   'de-DE': {
     podcast: "Willkommen zu unserem Podcast über die faszinierende Welt der Meeresbiologie. Von den Tiefen des Ozeans bis zu den Küsten werden wir die Wunder der Unterwasserwelt und die erstaunlichen Kreaturen erkunden.",
@@ -111,7 +114,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh mein Gott, das sind ja fantastische Neuigkeiten! Herzlichen Glückwunsch! Wie fühlen Sie sich dabei? Aufgeregt, nervös oder beides?",
     casual: "Oh nein, das wollte ich nicht! Wie wäre es damit: Wenn Sie etwas Skurriles mit viel Lachen wollen, nehmen Sie die Blue Man Group. Für etwas Magisches ist Cirque du Soleil die beste Wahl.",
     hesitant: "Also, äh, ich habe gedacht—nein, ich meine, ich habe mich gefragt, ob, ähm, ob Sie vielleicht Freitag in das, äh, neue italienische Restaurant gehen möchten?",
-    callcenter: "Vielen Dank für Ihren Anruf beim Kundendienst. Mein Name ist Anna, und ich helfe Ihnen gerne weiter. Ich verstehe, dass Sie ein Problem mit Ihrem Konto haben. Lassen Sie mich Ihre Informationen abrufen und schauen, wie ich Ihnen umgehend helfen kann."
+    callcenter: "Vielen Dank für Ihren Anruf beim Kundendienst. Mein Name ist Anna, und ich helfe Ihnen gerne weiter. Ich verstehe, dass Sie ein Problem mit Ihrem Konto haben. Lassen Sie mich Ihre Informationen abrufen und schauen, wie ich Ihnen umgehend helfen kann.",
+    explainer: "Lassen Sie mich erklären, wie Photosynthese funktioniert. Pflanzen nutzen Sonnenlicht, Wasser und Kohlendioxid, um Energie zu erzeugen. Der Prozess findet in den Chloroplasten statt, die Chlorophyll enthalten – das grüne Pigment, das Pflanzen ihre Farbe verleiht. Wenn Sonnenlicht auf die Blätter trifft, löst es eine chemische Reaktion aus, die diese Bestandteile in Glukose und Sauerstoff umwandelt."
   },
   'en-GB': {
     podcast: "Welcome to our programme exploring the fascinating world of marine biology. From the depths of the ocean to coastal waters, we'll discover the wonders of underwater life and the remarkable creatures that inhabit these environments.",
@@ -127,7 +131,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh my goodness, that's brilliant news! Congratulations! How are you feeling about it all? Any excitement, nerves, or a mix of both? Tell me everything!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with lots of laughs, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil is your best bet.",
     hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite.",
-    callcenter: "Thank you for calling customer support. My name is Emily, and I'll be pleased to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you straight away."
+    callcenter: "Thank you for calling customer support. My name is Emily, and I'll be pleased to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you straight away.",
+    explainer: "Let me explain how photosynthesis works. Plants use sunlight, water, and carbon dioxide to create energy. The process happens in the chloroplasts, which contain chlorophyll - the green pigment that gives plants their colour. When sunlight hits the leaves, it triggers a chemical reaction that converts these ingredients into glucose and oxygen."
   },
   'en-AU': {
     podcast: "G'day and welcome to our show about the amazing world of marine biology. From the deep blue ocean to our beautiful coastlines, we'll explore the incredible underwater world and the fascinating creatures that call it home.",
@@ -143,7 +148,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh my gosh, that's bloody amazing news! Congratulations! How are you feeling about it all? Any excitement, nerves, or a bit of both? Tell me everything!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with heaps of laughs, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil is your best bet.",
     hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite.",
-    callcenter: "Thanks for calling customer support. My name is Jessica, and I'll be happy to help you out today. I understand you're having an issue with your account. Let me pull up your details and see how I can sort this out for you right away."
+    callcenter: "Thanks for calling customer support. My name is Jessica, and I'll be happy to help you out today. I understand you're having an issue with your account. Let me pull up your details and see how I can sort this out for you right away.",
+    explainer: "Let me explain how photosynthesis works. Plants use sunlight, water, and carbon dioxide to create energy. The process happens in the chloroplasts, which contain chlorophyll - the green pigment that gives plants their colour. When sunlight hits the leaves, it triggers a chemical reaction that converts these ingredients into glucose and oxygen."
   },
   'en-CA': {
     podcast: "Welcome to our podcast about the wonderful world of marine biology. From the depths of the ocean to our coastal waters, we'll explore the amazing underwater ecosystems and the remarkable creatures that inhabit them.",
@@ -159,7 +165,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh my gosh, that's amazing news! Congratulations! How are you feeling about it all? Any excitement, nerves, or a mix of both? Tell me everything, eh!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with lots of laughs, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil is your best bet.",
     hesitant: "So, uh, I was thinking—no, I mean, I was wondering if, um, if you might want to go to the, uh, the new Italian restaurant on Friday? I've heard it's really—what's the word—oh, exquisite, eh?",
-    callcenter: "Thank you for calling customer support. My name is Laura, and I'll be happy to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you right away."
+    callcenter: "Thank you for calling customer support. My name is Laura, and I'll be happy to assist you today. I understand you're experiencing an issue with your account. Let me pull up your information and see how I can help resolve this for you right away.",
+    explainer: "Let me explain how photosynthesis works. Plants use sunlight, water, and carbon dioxide to create energy. The process happens in the chloroplasts, which contain chlorophyll - the green pigment that gives plants their colour. When sunlight hits the leaves, it triggers a chemical reaction that converts these ingredients into glucose and oxygen."
   },
   'en-IN': {
     podcast: "Welcome to our programme on marine biology. We will explore the fascinating world beneath the oceans, from the deepest waters to coastal regions, and learn about the wonderful creatures that inhabit these environments.",
@@ -175,7 +182,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh my goodness, that's wonderful news! Congratulations! How are you feeling about it all? Any excitement, nervousness, or perhaps a combination of both? Please tell me everything!",
     casual: "Oh no, I didn't mean to disappoint! How about this: If you want something quirky and fun with lots of laughter, go for Blue Man Group. If you're looking for something awe-inspiring and magical, Cirque du Soleil would be your best option.",
     hesitant: "So, um, I was thinking—no, I mean, I was wondering if, er, if you might want to go to the, um, the new Italian restaurant on Friday? I've heard it's really—what's the word—ah yes, exquisite.",
-    callcenter: "Thank you for calling customer support. My name is Priya, and I shall be pleased to assist you today. I understand you are experiencing an issue with your account. Kindly allow me to access your information and see how I can help resolve this matter for you immediately."
+    callcenter: "Thank you for calling customer support. My name is Priya, and I shall be pleased to assist you today. I understand you are experiencing an issue with your account. Kindly allow me to access your information and see how I can help resolve this matter for you immediately.",
+    explainer: "Let me explain how photosynthesis works. Plants use sunlight, water, and carbon dioxide to create energy. The process happens in the chloroplasts, which contain chlorophyll - the green pigment that gives plants their colour. When sunlight hits the leaves, it triggers a chemical reaction that converts these ingredients into glucose and oxygen."
   },
   'hi-IN': {
     podcast: "समुद्री जीव विज्ञान की आकर्षक दुनिया में आपका स्वागत है। गहरे समुद्र से लेकर तटीय क्षेत्रों तक, हम पानी के नीचे की अद्भुत दुनिया और वहां रहने वाले अद्भुत जीवों के बारे में जानेंगे।",
@@ -191,7 +199,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "अरे वाह, यह शानदार खबर है! बधाई हो! आप इस सब के बारे में कैसा महसूस कर रहे हैं? कोई उत्साह, घबराहट, या दोनों का मिश्रण? मुझे सब कुछ बताओ!",
     casual: "ओह नहीं, मैं निराश नहीं करना चाहता था! यह कैसे रहेगा: यदि आप बहुत सारी हंसी के साथ कुछ विचित्र और मजेदार चाहते हैं, तो ब्लू मैन ग्रुप के लिए जाएं। यदि आप कुछ विस्मयकारी और जादुई तलाश रहे हैं, तो Cirque du Soleil आपकी सबसे अच्छी शर्त है।",
     hesitant: "तो, उम, मैं सोच रहा था—नहीं, मेरा मतलब है, मैं सोच रहा था कि, उम, यदि आप शुक्रवार को, उह, नए इतालवी रेस्तरां में जाना चाहते हैं? मैंने सुना है कि यह वास्तव में—शब्द क्या है—ओह, उत्तम है।",
-    callcenter: "ग्राहक सहायता केंद्र में कॉल करने के लिए धन्यवाद। मेरा नाम अनिता है, और मैं आज आपकी सहायता करने में प्रसन्न हूं। मैं समझती हूं कि आपके खाते में कोई समस्या हो रही है। कृपया मुझे आपकी जानकारी देखने दें और मैं तुरंत इसे हल करने में आपकी मदद करूंगी।"
+    callcenter: "ग्राहक सहायता केंद्र में कॉल करने के लिए धन्यवाद। मेरा नाम अनिता है, और मैं आज आपकी सहायता करने में प्रसन्न हूं। मैं समझती हूं कि आपके खाते में कोई समस्या हो रही है। कृपया मुझे आपकी जानकारी देखने दें और मैं तुरंत इसे हल करने में आपकी मदद करूंगी।",
+    explainer: "मुझे प्रकाश संश्लेषण कैसे काम करता है यह समझाने दें। पौधे ऊर्जा बनाने के लिए सूर्य की रोशनी, पानी और कार्बन डाइऑक्साइड का उपयोग करते हैं। यह प्रक्रिया क्लोरोप्लास्ट में होती है, जिसमें क्लोरोफिल होता है - यह हरा वर्णक पौधों को उनका रंग देता है। जब सूर्य की रोशनी पत्तियों पर पड़ती है, तो यह एक रासायनिक प्रतिक्रिया शुरू करती है जो इन सामग्रियों को ग्लूकोज और ऑक्सीजन में परिवर्तित करती है।"
   },
   'es-ES': {
     podcast: "Bienvenidos a nuestro programa sobre el fascinante mundo de la biología marina. Desde las profundidades del océano hasta las costas, exploraremos las maravillas del mundo submarino y las criaturas asombrosas que lo habitan.",
@@ -207,7 +216,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "¡Oh Dios mío, esas son noticias increíbles! ¡Enhorabuena! ¿Cómo te sientes al respecto? ¿Emocionado, nervioso, o una mezcla de ambos? ¡Cuéntamelo todo!",
     casual: "¡Oh no, no quise decepcionarte! ¿Qué te parece esto? Si quieres algo peculiar y divertido con muchas risas, ve a ver Blue Man Group. Si buscas algo impresionante y mágico, Cirque du Soleil es tu mejor opción.",
     hesitant: "Entonces, eh, estaba pensando—no, quiero decir, me preguntaba si, um, si tal vez quisieras ir al, eh, el nuevo restaurante italiano el viernes. He oído que es realmente—¿cuál es la palabra?—oh, exquisito.",
-    callcenter: "Gracias por llamar al servicio de atención al cliente. Mi nombre es Carmen, y estaré encantada de ayudarle hoy. Entiendo que está experimentando un problema con su cuenta. Permítame consultar su información y ver cómo puedo resolver esto para usted de inmediato."
+    callcenter: "Gracias por llamar al servicio de atención al cliente. Mi nombre es Carmen, y estaré encantada de ayudarle hoy. Entiendo que está experimentando un problema con su cuenta. Permítame consultar su información y ver cómo puedo resolver esto para usted de inmediato.",
+    explainer: "Permítanme explicar cómo funciona la fotosíntesis. Las plantas utilizan la luz solar, el agua y el dióxido de carbono para crear energía. El proceso ocurre en los cloroplastos, que contienen clorofila, el pigmento verde que da a las plantas su color. Cuando la luz solar llega a las hojas, desencadena una reacción química que convierte estos ingredientes en glucosa y oxígeno."
   },
   'es-MX': {
     podcast: "Bienvenidos a nuestro podcast sobre el fascinante mundo de la biología marina. Desde las profundidades del mar hasta nuestras costas, exploraremos las maravillas del mundo submarino y las criaturas asombrosas que lo habitan.",
@@ -223,7 +233,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "¡Ay, qué padre! ¡Esas son noticias increíbles! ¡Felicidades! ¿Cómo te sientes al respecto? ¿Emocionado, nervioso, o una mezcla de ambos? ¡Cuéntamelo todo!",
     casual: "¡Ay no, no quise decepcionarte! ¿Qué te parece esto? Si quieres algo peculiar y divertido con muchas risas, ve a ver Blue Man Group. Si buscas algo impresionante y mágico, Cirque du Soleil es tu mejor opción.",
     hesitant: "Entonces, eh, estaba pensando—no, o sea, me preguntaba si, este, si tal vez quisieras ir al, eh, el nuevo restaurante italiano el viernes. He oído que es realmente—¿cuál es la palabra?—ah sí, exquisito.",
-    callcenter: "Gracias por llamar a servicio al cliente. Mi nombre es María, y con gusto le atenderé el día de hoy. Entiendo que está teniendo un problema con su cuenta. Permítame consultar su información y ver cómo puedo ayudarle a resolver esto de inmediato."
+    callcenter: "Gracias por llamar a servicio al cliente. Mi nombre es María, y con gusto le atenderé el día de hoy. Entiendo que está teniendo un problema con su cuenta. Permítame consultar su información y ver cómo puedo ayudarle a resolver esto de inmediato.",
+    explainer: "Permítanme explicar cómo funciona la fotosíntesis. Las plantas utilizan la luz solar, el agua y el dióxido de carbono para crear energía. El proceso ocurre en los cloroplastos, que contienen clorofila, el pigmento verde que da a las plantas su color. Cuando la luz solar llega a las hojas, desencadena una reacción química que convierte estos ingredientes en glucosa y oxígeno."
   },
   'ja-JP': {
     podcast: "海洋生物学の魅力的な世界へようこそ。深海から沿岸まで、水中世界の驚異とそこに生息する驚くべき生き物たちについて探求していきます。",
@@ -239,7 +250,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "わあ、それは素晴らしいニュースです！おめでとうございます！それについてどう感じていますか？興奮していますか、緊張していますか、それとも両方の混合ですか？すべて教えてください！",
     casual: "ああ、がっかりさせるつもりはなかったんだ！こうしよう：風変わりで楽しくて笑いがたくさんあるものが欲しいなら、ブルーマングループに行け。畏敬の念を起こさせる魔法のようなものを探しているなら、シルク・ドゥ・ソレイユがベストだ。",
     hesitant: "えっと、その、考えていたんだ—いや、つまり、もし、えー、もしよかったら金曜日に、その、新しいイタリアンレストランに行きたいかなって。本当に—なんて言うか—ああ、絶品だって聞いたんだ。",
-    callcenter: "カスタマーサポートにお電話いただきありがとうございます。私の名前は田中美咲と申します。本日はお客様のサポートをさせていただきます。アカウントに問題が発生しているとのことですね。お客様の情報を確認させていただき、すぐに解決できるようお手伝いさせていただきます。"
+    callcenter: "カスタマーサポートにお電話いただきありがとうございます。私の名前は田中美咲と申します。本日はお客様のサポートをさせていただきます。アカウントに問題が発生しているとのことですね。お客様の情報を確認させていただき、すぐに解決できるようお手伝いさせていただきます。",
+    explainer: "光合成がどのように機能するかを説明させてください。植物は太陽光、水、二酸化炭素を使ってエネルギーを作り出します。このプロセスは葉緑体で起こります。葉緑体にはクロロフィルが含まれており、これが植物に緑色を与える色素です。太陽光が葉に当たると、化学反応が引き起こされ、これらの材料がグルコースと酸素に変換されます。"
   },
   'fr-FR': {
     podcast: "Bienvenue dans notre émission sur le monde fascinant de la biologie marine. Des profondeurs océaniques aux côtes, nous explorerons les merveilles du monde sous-marin et les créatures extraordinaires qui l'habitent.",
@@ -255,7 +267,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh mon Dieu, c'est une nouvelle incroyable ! Félicitations ! Comment vous sentez-vous à ce sujet ? Excité, nerveux, ou un mélange des deux ? Racontez-moi tout !",
     casual: "Oh non, je ne voulais pas vous décevoir ! Que diriez-vous de ceci : Si vous voulez quelque chose d'original et amusant avec beaucoup de rires, optez pour Blue Man Group. Si vous cherchez quelque chose d'impressionnant et magique, Cirque du Soleil est votre meilleur choix.",
     hesitant: "Alors, euh, je pensais—non, je veux dire, je me demandais si, euh, si vous aimeriez aller au, euh, nouveau restaurant italien vendredi ? J'ai entendu dire que c'est vraiment—quel est le mot—oh, exquis.",
-    callcenter: "Merci d'avoir appelé le service client. Je m'appelle Sophie, et je serai ravie de vous aider aujourd'hui. Je comprends que vous rencontrez un problème avec votre compte. Permettez-moi de consulter vos informations et voir comment je peux résoudre cela pour vous immédiatement."
+    callcenter: "Merci d'avoir appelé le service client. Je m'appelle Sophie, et je serai ravie de vous aider aujourd'hui. Je comprends que vous rencontrez un problème avec votre compte. Permettez-moi de consulter vos informations et voir comment je peux résoudre cela pour vous immédiatement.",
+    explainer: "Permettez-moi d'expliquer comment fonctionne la photosynthèse. Les plantes utilisent la lumière du soleil, l'eau et le dioxyde de carbone pour créer de l'énergie. Le processus se déroule dans les chloroplastes, qui contiennent de la chlorophylle - le pigment vert qui donne leur couleur aux plantes. Lorsque la lumière du soleil frappe les feuilles, elle déclenche une réaction chimique qui convertit ces ingrédients en glucose et en oxygène."
   },
   'fr-CA': {
     podcast: "Bienvenue à notre émission sur le merveilleux monde de la biologie marine. Des profondeurs de l'océan jusqu'aux côtes, nous explorerons les merveilles du monde sous-marin et les créatures remarquables qui l'habitent.",
@@ -271,7 +284,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh mon Dieu, c'est une nouvelle incroyable ! Félicitations ! Comment tu te sens par rapport à ça ? Excité, nerveux, ou un mélange des deux ? Raconte-moi tout !",
     casual: "Oh non, je voulais pas te décevoir ! Que dirais-tu de ça : Si tu veux quelque chose d'original pis amusant avec ben des rires, va voir Blue Man Group. Si tu cherches quelque chose d'impressionnant pis magique, Cirque du Soleil est ton meilleur choix.",
     hesitant: "Alors, euh, je pensais—non, je veux dire, je me demandais si, euh, si tu aimerais aller au, euh, nouveau restaurant italien vendredi ? J'ai entendu dire que c'est vraiment—quel est le mot—oh, exquis.",
-    callcenter: "Merci d'avoir appelé le service à la clientèle. Je m'appelle Isabelle, et je serai heureuse de vous aider aujourd'hui. Je comprends que vous éprouvez un problème avec votre compte. Permettez-moi de consulter vos informations et voir comment je peux régler ça pour vous tout de suite."
+    callcenter: "Merci d'avoir appelé le service à la clientèle. Je m'appelle Isabelle, et je serai heureuse de vous aider aujourd'hui. Je comprends que vous éprouvez un problème avec votre compte. Permettez-moi de consulter vos informations et voir comment je peux régler ça pour vous tout de suite.",
+    explainer: "Permettez-moi d'expliquer comment fonctionne la photosynthèse. Les plantes utilisent la lumière du soleil, l'eau et le dioxyde de carbone pour créer de l'énergie. Le processus se déroule dans les chloroplastes, qui contiennent de la chlorophylle - le pigment vert qui donne leur couleur aux plantes. Lorsque la lumière du soleil frappe les feuilles, elle déclenche une réaction chimique qui convertit ces ingrédients en glucose et en oxygène."
   },
   'pt-BR': {
     podcast: "Bem-vindos ao nosso podcast sobre o fascinante mundo da biologia marinha. Das profundezas do oceano até as costas, vamos explorar as maravilhas do mundo submarino e as criaturas incríveis que o habitam.",
@@ -287,7 +301,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Meu Deus, essa é uma notícia incrível! Parabéns! Como você está se sentindo sobre isso tudo? Empolgado, nervoso, ou uma mistura dos dois? Me conta tudo!",
     casual: "Ah não, não quis decepcionar! Que tal isso: Se você quer algo peculiar e divertido com muitas risadas, vá de Blue Man Group. Se você está procurando algo impressionante e mágico, Cirque du Soleil é sua melhor aposta.",
     hesitant: "Então, é, eu estava pensando—não, quero dizer, eu estava me perguntando se, hum, se você talvez quisesse ir ao, é, o novo restaurante italiano na sexta-feira? Eu ouvi que é realmente—qual é a palavra—ah, requintado.",
-    callcenter: "Obrigada por ligar para o suporte ao cliente. Meu nome é Juliana, e terei o prazer de ajudá-lo hoje. Entendo que você está enfrentando um problema com sua conta. Deixe-me consultar suas informações e ver como posso resolver isso para você imediatamente."
+    callcenter: "Obrigada por ligar para o suporte ao cliente. Meu nome é Juliana, e terei o prazer de ajudá-lo hoje. Entendo que você está enfrentando um problema com sua conta. Deixe-me consultar suas informações e ver como posso resolver isso para você imediatamente.",
+    explainer: "Deixe-me explicar como funciona a fotossíntese. As plantas usam luz solar, água e dióxido de carbono para criar energia. O processo acontece nos cloroplastos, que contêm clorofila - o pigmento verde que dá às plantas sua cor. Quando a luz solar atinge as folhas, ela desencadeia uma reação química que converte esses ingredientes em glicose e oxigênio."
   },
   'pt-PT': {
     podcast: "Bem-vindos ao nosso programa sobre o fascinante mundo da biologia marinha. Desde as profundezas do oceano até às costas, iremos explorar as maravilhas do mundo submarino e as criaturas extraordinárias que o habitam.",
@@ -303,7 +318,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Meu Deus, essa é uma notícia fantástica! Parabéns! Como se está a sentir em relação a isto tudo? Entusiasmado, nervoso, ou uma mistura dos dois? Conta-me tudo!",
     casual: "Oh não, não quis desiludir! Que tal isto: Se querem algo peculiar e divertido com muitas risadas, vão ao Blue Man Group. Se procuram algo impressionante e mágico, o Cirque du Soleil é a vossa melhor aposta.",
     hesitant: "Então, é, eu estava a pensar—não, quer dizer, estava a perguntar-me se, hum, se talvez quisesses ir ao, é, o novo restaurante italiano na sexta-feira? Ouvi dizer que é realmente—qual é a palavra—ah, requintado.",
-    callcenter: "Obrigada por contactar o apoio ao cliente. O meu nome é Sofia, e terei todo o gosto em ajudá-lo hoje. Compreendo que está a ter um problema com a sua conta. Permita-me consultar as suas informações e ver como posso resolver isto para si de imediato."
+    callcenter: "Obrigada por contactar o apoio ao cliente. O meu nome é Sofia, e terei todo o gosto em ajudá-lo hoje. Compreendo que está a ter um problema com a sua conta. Permita-me consultar as suas informações e ver como posso resolver isto para si de imediato.",
+    explainer: "Permitam-me explicar como funciona a fotossíntese. As plantas usam luz solar, água e dióxido de carbono para criar energia. O processo acontece nos cloroplastos, que contêm clorofila - o pigmento verde que dá às plantas a sua cor. Quando a luz solar atinge as folhas, desencadeia uma reação química que converte estes ingredientes em glucose e oxigénio."
   },
   'it-IT': {
     podcast: "Benvenuti al nostro programma sul affascinante mondo della biologia marina. Dalle profondità dell'oceano alle coste, esploreremo le meraviglie del mondo sottomarino e le creature straordinarie che lo abitano.",
@@ -319,7 +335,8 @@ export const domainPresets: Record<string, LanguagePresets> = {
     enthusiastic: "Oh mio Dio, questa è una notizia fantastica! Congratulazioni! Come ti senti riguardo a tutto questo? Eccitato, nervoso, o un mix di entrambi? Dimmi tutto!",
     casual: "Oh no, non volevo deluderti! Che ne dici di questo: Se vuoi qualcosa di stravagante e divertente con tante risate, scegli Blue Man Group. Se cerchi qualcosa di impressionante e magico, Cirque du Soleil è la tua scelta migliore.",
     hesitant: "Allora, ehm, stavo pensando—no, voglio dire, mi chiedevo se, ehm, se forse vorresti andare al, ehm, nuovo ristorante italiano venerdì? Ho sentito che è davvero—qual è la parola—oh, squisito.",
-    callcenter: "Grazie per aver chiamato l'assistenza clienti. Mi chiamo Francesca, e sarò lieta di aiutarla oggi. Capisco che sta riscontrando un problema con il suo account. Mi permetta di consultare le sue informazioni e vedere come posso risolvere questo per lei immediatamente."
+    callcenter: "Grazie per aver chiamato l'assistenza clienti. Mi chiamo Francesca, e sarò lieta di aiutarla oggi. Capisco che sta riscontrando un problema con il suo account. Mi permetta di consultare le sue informazioni e vedere come posso risolvere questo per lei immediatamente.",
+    explainer: "Permettetemi di spiegare come funziona la fotosintesi. Le piante usano la luce solare, l'acqua e l'anidride carbonica per creare energia. Il processo avviene nei cloroplasti, che contengono la clorofilla - il pigmento verde che dà alle piante il loro colore. Quando la luce solare colpisce le foglie, innesca una reazione chimica che converte questi ingredienti in glucosio e ossigeno."
   },
 };
 
@@ -360,6 +377,7 @@ export function getPresetsForLanguage(langCode: string): LanguagePresets {
       casual: podcastText,
       hesitant: podcastText,
       callcenter: podcastText,
+      explainer: podcastText,
     };
   }
 

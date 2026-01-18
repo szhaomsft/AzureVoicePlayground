@@ -199,6 +199,7 @@ export function TextInput({
             <option value="enthusiastic">Enthusiastic/Excited</option>
             <option value="casual">Casual Conversation</option>
             <option value="hesitant">Hesitant/Uncertain</option>
+            <option value="explainer">Explainer Video</option>
           </select>
         </div>
       </div>

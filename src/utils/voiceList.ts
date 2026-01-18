@@ -69,7 +69,7 @@ export async function fetchVoiceList(
 
       voices.unshift(
         {
-          name: 'en-us-phoebe:mai-voice-1',
+          name: 'en-us-phoebe:MAI-Voice-1',
           locale: 'en-US',
           gender: 'Female',
           description: 'Phoebe MAI Voice (en-US)',
@@ -81,7 +81,7 @@ export async function fetchVoiceList(
           wordsPer: undefined,
         },
         {
-          name: 'en-us-benjamin:mai-voice-1',
+          name: 'en-us-benjamin:MAI-Voice-1',
           locale: 'en-US',
           gender: 'Male',
           description: 'Benjamin MAI Voice (en-US)',
