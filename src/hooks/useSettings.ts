@@ -38,10 +38,31 @@ export function useSettings() {
       const stored = localStorage.getItem(STORAGE_KEY);
       const apiKeys = loadApiKeys();
 
+      console.log('=== LOADING SETTINGS ===');
+
+      // Mask all API keys before logging
+      const maskedKeys: Record<string, string> = {};
+      Object.keys(apiKeys).forEach(region => {
+        const key = apiKeys[region];
+        maskedKeys[region] = key.length > 8
+          ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}`
+          : '****';
+      });
+      console.log('Stored API keys by region:', maskedKeys);
+
       if (stored) {
         const parsedSettings = JSON.parse(stored);
         const region = parsedSettings.region || DEFAULT_SETTINGS.region;
         const apiKey = apiKeys[region] || parsedSettings.apiKey || '';
+
+        // Mask API key for display
+        const maskedKey = apiKey.length > 8
+          ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
+          : '****';
+
+        console.log('Loading settings for region:', region);
+        console.log('Loaded API key:', maskedKey);
+        console.log('========================');
 
         return {
           ...DEFAULT_SETTINGS,
@@ -57,6 +78,17 @@ export function useSettings() {
 
   useEffect(() => {
     try {
+      // Mask API key for display
+      const maskedKey = settings.apiKey.length > 8
+        ? `${settings.apiKey.substring(0, 4)}...${settings.apiKey.substring(settings.apiKey.length - 4)}`
+        : '****';
+
+      console.log('=== SAVING SETTINGS (useEffect) ===');
+      console.log('Region:', settings.region);
+      console.log('API Key being saved:', maskedKey);
+      console.log('This key will be saved FOR region:', settings.region);
+      console.log('===================================');
+
       // Save settings without API key
       const { apiKey, ...settingsWithoutKey } = settings;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsWithoutKey));
@@ -66,6 +98,7 @@ export function useSettings() {
         const apiKeys = loadApiKeys();
         apiKeys[settings.region] = apiKey;
         saveApiKeys(apiKeys);
+        console.log(`✅ API key ${maskedKey} saved for region: ${settings.region}`);
       }
     } catch (error) {
       console.error('Failed to save settings to localStorage:', error);
@@ -73,20 +106,88 @@ export function useSettings() {
   }, [settings]);
 
   const updateSettings = (partial: Partial<AzureSettings>) => {
+    // Log stack trace to see who's calling this
+    console.log('=== UPDATE SETTINGS CALLED ===');
+    console.trace('Called from:');
+
     setSettings((prev) => {
+      const maskedPrevKey = prev.apiKey.length > 8
+        ? `${prev.apiKey.substring(0, 4)}...${prev.apiKey.substring(prev.apiKey.length - 4)}`
+        : '****';
+
+      console.log('Previous settings:', { region: prev.region, apiKey: maskedPrevKey });
+
+      // Mask the partial update if it contains an API key
+      const maskedPartial = { ...partial };
+      if (partial.apiKey) {
+        const key = partial.apiKey;
+        maskedPartial.apiKey = key.length > 8
+          ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}`
+          : '****';
+      }
+      console.log('Partial update:', maskedPartial);
+
       const newSettings = { ...prev, ...partial };
 
       // If region is changing, load the API key for the new region
-      if (partial.region && partial.region !== prev.region) {
+      // BUT only if apiKey is not being explicitly updated in this call
+      if (partial.region && partial.region !== prev.region && !partial.apiKey) {
         const apiKeys = loadApiKeys();
-        newSettings.apiKey = apiKeys[partial.region] || '';
+        const regionKey = apiKeys[partial.region] || '';
+        newSettings.apiKey = regionKey;
+
+        const maskedOldKey = prev.apiKey.length > 8
+          ? `${prev.apiKey.substring(0, 4)}...${prev.apiKey.substring(prev.apiKey.length - 4)}`
+          : '****';
+        const maskedNewKey = regionKey.length > 8
+          ? `${regionKey.substring(0, 4)}...${regionKey.substring(regionKey.length - 4)}`
+          : '****';
+
+        console.log(`🔄 Region changed from "${prev.region}" to "${partial.region}"`);
+        console.log(`🔑 Loading saved API key for "${partial.region}": ${maskedOldKey} → ${maskedNewKey}`);
+        if (!regionKey) {
+          console.warn(`⚠️ No API key found for region "${partial.region}" - you'll need to enter one`);
+        }
       }
+
+      console.log('New settings:', {
+        region: newSettings.region,
+        apiKey: newSettings.apiKey.length > 8
+          ? `${newSettings.apiKey.substring(0, 4)}...${newSettings.apiKey.substring(newSettings.apiKey.length - 4)}`
+          : '****'
+      });
+      console.log('==============================');
 
       return newSettings;
     });
   };
 
   const isConfigured = settings.apiKey.length > 0 && settings.region.length > 0;
+
+  // Debug helper - expose localStorage management
+  const clearRegionKey = (region: string) => {
+    const apiKeys = loadApiKeys();
+    delete apiKeys[region];
+    saveApiKeys(apiKeys);
+    console.log(`🗑️ Cleared API key for region: ${region}`);
+    console.log('Remaining keys:', apiKeys);
+  };
+
+  const clearAllKeys = () => {
+    localStorage.removeItem(API_KEYS_STORAGE_KEY);
+    console.log('🗑️ Cleared all API keys from localStorage');
+  };
+
+  // Make these available globally for debugging
+  if (typeof window !== 'undefined') {
+    (window as any).debugSettings = {
+      clearRegionKey,
+      clearAllKeys,
+      viewKeys: () => {
+        console.log('Current API keys in localStorage:', loadApiKeys());
+      }
+    };
+  }
 
   return {
     settings,

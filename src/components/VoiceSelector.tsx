@@ -54,9 +54,12 @@ export function VoiceSelector({
     if (filterPreset) {
       switch (filterPreset) {
         case 'MAI':
-          // Check both name patterns for MAI voices
-          if (!voice.name.toLowerCase().includes('mai-voice') &&
-              !voice.name.toLowerCase().includes(':mai-')) return false;
+          // Check name patterns AND VoiceTag.Source for MAI voices
+          const hasMAIName = voice.name.toLowerCase().includes('mai-voice') ||
+                             voice.name.toLowerCase().includes(':mai-');
+          const hasMAISource = Array.isArray(voice.voiceTag?.Source) &&
+                               voice.voiceTag.Source.some(s => s.toLowerCase() === 'mai');
+          if (!hasMAIName && !hasMAISource) return false;
           break;
         case 'HD':
           if (!voice.isNeuralHD) return false;
@@ -65,8 +68,11 @@ export function VoiceSelector({
           if (voice.isNeuralHD) return false;
           break;
         case 'OpenAI':
-          // OpenAI voices typically have "openai" in the voice name
-          if (!voice.name.toLowerCase().includes('openai')) return false;
+          // Check name pattern AND VoiceTag.Source for OpenAI voices
+          const hasOpenAIName = voice.name.toLowerCase().includes('openai');
+          const hasOpenAISource = Array.isArray(voice.voiceTag?.Source) &&
+                                  voice.voiceTag.Source.some(s => s.toLowerCase() === 'openai');
+          if (!hasOpenAIName && !hasOpenAISource) return false;
           break;
       }
     }
@@ -188,8 +194,32 @@ export function VoiceSelector({
       <select
         value={selectedVoice}
         onChange={(e) => {
-          console.log('Voice changed to:', e.target.value);
-          onVoiceChange(e.target.value);
+          const selectedVoiceName = e.target.value;
+          console.log('Voice changed to:', selectedVoiceName);
+
+          // Find the full voice object and dump all attributes
+          const voiceObject = filteredVoices.find(v => v.name === selectedVoiceName);
+
+          if (voiceObject) {
+            console.log('=== VOICE ATTRIBUTES ===');
+            console.log('Full Voice Object:', voiceObject);
+            console.table({
+              name: voiceObject.name,
+              locale: voiceObject.locale,
+              gender: voiceObject.gender,
+              description: voiceObject.description,
+              voiceType: voiceObject.voiceType,
+              isNeuralHD: voiceObject.isNeuralHD,
+              isFeatured: voiceObject.isFeatured,
+              wordsPer: voiceObject.wordsPer,
+            });
+            console.log('Style List:', voiceObject.styleList);
+            console.log('Keywords:', voiceObject.keywords);
+            console.log('Voice Tag:', voiceObject.voiceTag);
+            console.log('========================');
+          }
+
+          onVoiceChange(selectedVoiceName);
         }}
         disabled={loading}
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"

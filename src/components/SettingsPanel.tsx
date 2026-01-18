@@ -64,8 +64,32 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
           <input
             type="password"
             value={settings.apiKey}
-            onChange={(e) => onSettingsChange({ apiKey: e.target.value })}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              const maskedNew = newValue.length > 8
+                ? `${newValue.substring(0, 4)}...${newValue.substring(newValue.length - 4)}`
+                : '****';
+              const maskedCurrent = settings.apiKey.length > 8
+                ? `${settings.apiKey.substring(0, 4)}...${settings.apiKey.substring(settings.apiKey.length - 4)}`
+                : '****';
+
+              console.log('SettingsPanel: API Key input onChange triggered');
+              console.log('Current value in input:', maskedNew);
+              console.log('Current settings.apiKey:', maskedCurrent);
+              console.log('Are they different?', newValue !== settings.apiKey);
+
+              // Only update if the value actually changed
+              if (newValue !== settings.apiKey) {
+                console.log('✅ Value changed - updating settings');
+                onSettingsChange({ apiKey: newValue });
+              } else {
+                console.log('⚠️ Value unchanged - skipping update');
+              }
+            }}
             placeholder="Enter your Azure Speech API key"
+            autoComplete="new-password"
+            data-lpignore="true"
+            data-form-type="other"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <p className="text-xs text-gray-500">

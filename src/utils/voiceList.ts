@@ -5,7 +5,15 @@ export async function fetchVoiceList(
   region: string
 ): Promise<VoiceInfo[]> {
   try {
-    console.log('Fetching voices with region:', region);
+    // Mask API key for display (show first 4 and last 4 characters)
+    const maskedKey = apiKey.length > 8
+      ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
+      : '****';
+
+    console.log('=== FETCHING VOICES ===');
+    console.log('Region:', region);
+    console.log('API Key:', maskedKey);
+    console.log('=======================');
 
     // Use Azure REST API instead of SDK to avoid the locale.toLowerCase bug
     const url = `https://${region}.tts.speech.microsoft.com/cognitiveservices/voices/list`;

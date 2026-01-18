@@ -20,6 +20,7 @@ export interface VoiceInfo {
   voiceTag?: {
     ContentCategories?: string[];
     VoicePersonalities?: string[];
+    Source?: string[];
   };
 }
 
