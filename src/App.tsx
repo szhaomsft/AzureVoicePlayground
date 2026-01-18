@@ -69,7 +69,7 @@ function App() {
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 shadow-md">
           <h1 className="text-3xl font-bold">Azure Voice Playground</h1>
           <p className="text-blue-100 mt-1">
-            Text-to-Speech with real-time word highlighting and MP3 export
+            Realtime text-to-Speech voices from Microsoft Foundry Voice Gallery
           </p>
         </div>
 

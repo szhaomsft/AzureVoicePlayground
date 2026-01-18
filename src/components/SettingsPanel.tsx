@@ -7,18 +7,47 @@ interface SettingsPanelProps {
   onSettingsChange: (settings: Partial<AzureSettings>) => void;
 }
 
-const COMMON_REGIONS = [
+const ALL_TTS_REGIONS = [
+  // Americas
+  { value: 'brazilsouth', label: 'Brazil South' },
+  { value: 'canadacentral', label: 'Canada Central' },
+  { value: 'canadaeast', label: 'Canada East' },
+  { value: 'centralus', label: 'Central US' },
   { value: 'eastus', label: 'East US' },
+  { value: 'eastus2', label: 'East US 2' },
+  { value: 'northcentralus', label: 'North Central US' },
+  { value: 'southcentralus', label: 'South Central US' },
+  { value: 'westcentralus', label: 'West Central US' },
   { value: 'westus', label: 'West US' },
   { value: 'westus2', label: 'West US 2' },
-  { value: 'eastus2', label: 'East US 2' },
-  { value: 'centralus', label: 'Central US' },
+  { value: 'westus3', label: 'West US 3' },
+
+  // Europe
+  { value: 'francecentral', label: 'France Central' },
+  { value: 'germanywestcentral', label: 'Germany West Central' },
+  { value: 'italynorth', label: 'Italy North' },
   { value: 'northeurope', label: 'North Europe' },
+  { value: 'norwayeast', label: 'Norway East' },
+  { value: 'swedencentral', label: 'Sweden Central' },
+  { value: 'switzerlandnorth', label: 'Switzerland North' },
+  { value: 'switzerlandwest', label: 'Switzerland West' },
+  { value: 'uksouth', label: 'UK South' },
+  { value: 'ukwest', label: 'UK West' },
   { value: 'westeurope', label: 'West Europe' },
-  { value: 'southeastasia', label: 'Southeast Asia' },
+
+  // Asia Pacific
+  { value: 'australiaeast', label: 'Australia East' },
+  { value: 'centralindia', label: 'Central India' },
   { value: 'eastasia', label: 'East Asia' },
   { value: 'japaneast', label: 'Japan East' },
-  { value: 'australiaeast', label: 'Australia East' },
+  { value: 'japanwest', label: 'Japan West' },
+  { value: 'koreacentral', label: 'Korea Central' },
+  { value: 'southeastasia', label: 'Southeast Asia' },
+
+  // Middle East & Africa
+  { value: 'qatarcentral', label: 'Qatar Central' },
+  { value: 'southafricanorth', label: 'South Africa North' },
+  { value: 'uaenorth', label: 'UAE North' },
 ];
 
 export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps) {
@@ -62,7 +91,7 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
             onChange={(e) => onSettingsChange({ region: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            {COMMON_REGIONS.map((region) => (
+            {ALL_TTS_REGIONS.map((region) => (
               <option key={region.value} value={region.value}>
                 {region.label}
               </option>

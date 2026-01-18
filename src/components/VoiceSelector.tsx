@@ -28,6 +28,16 @@ export function VoiceSelector({
       fetchVoiceList(apiKey, region)
         .then((fetchedVoices) => {
           setVoices(fetchedVoices);
+
+          // Debug: Check for OpenAI and MAI voices
+          const openAIVoices = fetchedVoices.filter(v => v.name.toLowerCase().includes('openai'));
+          const maiVoices = fetchedVoices.filter(v =>
+            v.name.toLowerCase().includes('mai-voice') ||
+            v.name.toLowerCase().includes(':mai-')
+          );
+          console.log(`Found ${openAIVoices.length} OpenAI voices:`, openAIVoices.map(v => v.name));
+          console.log(`Found ${maiVoices.length} MAI voices:`, maiVoices.map(v => v.name));
+
           setLoading(false);
         })
         .catch((err) => {
@@ -44,13 +54,19 @@ export function VoiceSelector({
     if (filterPreset) {
       switch (filterPreset) {
         case 'MAI':
-          if (!voice.name.toLowerCase().includes('mai-voice')) return false;
+          // Check both name patterns for MAI voices
+          if (!voice.name.toLowerCase().includes('mai-voice') &&
+              !voice.name.toLowerCase().includes(':mai-')) return false;
           break;
         case 'HD':
           if (!voice.isNeuralHD) return false;
           break;
         case 'NonHD':
           if (voice.isNeuralHD) return false;
+          break;
+        case 'OpenAI':
+          // OpenAI voices typically have "openai" in the voice name
+          if (!voice.name.toLowerCase().includes('openai')) return false;
           break;
       }
     }
@@ -137,6 +153,16 @@ export function VoiceSelector({
           MAI
         </button>
         <button
+          onClick={() => setFilterPreset(filterPreset === 'OpenAI' ? '' : 'OpenAI')}
+          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            filterPreset === 'OpenAI'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          OpenAI
+        </button>
+        <button
           onClick={() => setFilterPreset(filterPreset === 'NonHD' ? '' : 'NonHD')}
           className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
             filterPreset === 'NonHD'
@@ -189,7 +215,7 @@ export function VoiceSelector({
             return (
               <option key={voice.name} value={voice.name}>
                 {voice.isFeatured ? '⭐ ' : ''}
-                {voice.name} - {voice.description}{tagsText}
+                {voice.name}{tagsText}
               </option>
             );
           })}
