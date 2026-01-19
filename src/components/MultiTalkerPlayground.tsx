@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AzureSettings, SynthesisState } from '../types/azure';
-import { MultiTalkerVoice, MultiTalkerHistoryEntry } from '../types/multiTalker';
+import { MultiTalkerVoice, MultiTalkerHistoryEntry, buildMultiTalkerSSML } from '../types/multiTalker';
 import { useMultiTalkerTTS } from '../hooks/useMultiTalkerTTS';
 import { MultiTalkerVoiceSelector } from './MultiTalkerVoiceSelector';
 import { PlaybackControls } from './PlaybackControls';
 import { FeedbackButton } from './FeedbackButton';
 import { getAudioDuration } from '../utils/audioUtils';
 import { PODCAST_PRESETS, getBestPresetForLocale, adaptPresetToSpeakers } from '../utils/podcastPresets';
+import { generatePodcastScript, AzureOpenAIConfig } from '../utils/azureOpenAI';
 
 interface MultiTalkerPlaygroundProps {
   settings: AzureSettings;
@@ -42,6 +43,20 @@ export function MultiTalkerPlayground({
   const [playingHistoryId, setPlayingHistoryId] = useState<string | null>(null);
   const previousAudioDataRef = useRef<ArrayBuffer | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // URL to script generation state
+  const [urlInput, setUrlInput] = useState(() => localStorage.getItem('podcast_url') || '');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState('');
+  const [showAIConfig, setShowAIConfig] = useState(false);
+  const [aiEndpoint, setAiEndpoint] = useState(() => localStorage.getItem('aoai_endpoint') || '');
+  const [aiApiKey, setAiApiKey] = useState(() => localStorage.getItem('aoai_apikey') || '');
+  const [aiDeployment, setAiDeployment] = useState(() => localStorage.getItem('aoai_deployment') || 'gpt-5');
+
+  // Save URL to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('podcast_url', urlInput);
+  }, [urlInput]);
 
   const { state, error, audioData, generatedSSML, synthesize, pause, resume, stop } =
     useMultiTalkerTTS({
@@ -109,6 +124,71 @@ export function MultiTalkerPlayground({
     }
   };
 
+  // Save AI config to localStorage when changed
+  const saveAIConfig = () => {
+    localStorage.setItem('aoai_endpoint', aiEndpoint);
+    localStorage.setItem('aoai_apikey', aiApiKey);
+    localStorage.setItem('aoai_deployment', aiDeployment);
+    setShowAIConfig(false);
+  };
+
+  // Generate podcast script from URL
+  const handleGenerateFromUrl = async () => {
+    if (!urlInput.trim()) {
+      setGenerateError('Please enter a URL');
+      return;
+    }
+    if (!aiEndpoint || !aiApiKey) {
+      setGenerateError('Please configure Azure OpenAI settings first');
+      setShowAIConfig(true);
+      return;
+    }
+    if (!selectedVoice) {
+      setGenerateError('Please select a voice first');
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerateError('');
+
+    try {
+      const config: AzureOpenAIConfig = {
+        endpoint: aiEndpoint,
+        apiKey: aiApiKey,
+        deploymentName: aiDeployment,
+      };
+
+      // Determine language: use preset language if selected, otherwise voice locale, default to en-US
+      const localeToUse = selectedPreset || selectedVoice.locale || 'en-US';
+      const langCode = localeToUse.split('-')[0].toLowerCase();
+      const languageMap: Record<string, string> = {
+        'zh': 'Chinese',
+        'ja': 'Japanese',
+        'ko': 'Korean',
+        'de': 'German',
+        'fr': 'French',
+        'es': 'Spanish',
+        'pt': 'Portuguese',
+        'it': 'Italian',
+        'en': 'English',
+      };
+      const language = languageMap[langCode] || 'English';
+
+      const script = await generatePodcastScript(config, {
+        url: urlInput,
+        speakers: selectedVoice.speakers,
+        language,
+      });
+
+      setText(script);
+      setSelectedPreset(''); // Clear preset since we're using generated script
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : 'Failed to generate script');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleDownload = (entry: MultiTalkerHistoryEntry) => {
     const blob = new Blob([entry.audioData], { type: 'audio/mpeg' });
     const url = URL.createObjectURL(blob);
@@ -172,6 +252,89 @@ export function MultiTalkerPlayground({
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col gap-4 p-6 overflow-y-auto">
+          {/* URL to Script Generator */}
+          <div className="border border-purple-200 rounded-lg p-4 bg-purple-50">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-purple-700">Generate Script from URL</label>
+              <button
+                onClick={() => setShowAIConfig(!showAIConfig)}
+                className="text-xs text-purple-600 hover:text-purple-800 underline"
+              >
+                {showAIConfig ? 'Hide' : 'Configure'} Azure OpenAI
+              </button>
+            </div>
+
+            {/* AI Config Panel */}
+            {showAIConfig && (
+              <div className="mb-3 p-3 bg-white border border-purple-200 rounded-md space-y-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Endpoint</label>
+                  <input
+                    type="text"
+                    value={aiEndpoint}
+                    onChange={(e) => setAiEndpoint(e.target.value)}
+                    placeholder="https://your-resource.openai.azure.com"
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">API Key</label>
+                  <input
+                    type="password"
+                    value={aiApiKey}
+                    onChange={(e) => setAiApiKey(e.target.value)}
+                    placeholder="Enter API key"
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Deployment Name</label>
+                  <input
+                    type="text"
+                    value={aiDeployment}
+                    onChange={(e) => setAiDeployment(e.target.value)}
+                    placeholder="gpt-5"
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                </div>
+                <button
+                  onClick={saveAIConfig}
+                  className="px-3 py-1 text-xs font-medium text-white bg-purple-600 rounded hover:bg-purple-700"
+                >
+                  Save Config
+                </button>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="Enter URL to generate podcast script from..."
+                className="flex-1 px-3 py-2 border border-purple-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                disabled={isGenerating}
+              />
+              <button
+                onClick={handleGenerateFromUrl}
+                disabled={isGenerating || !urlInput.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Script'
+                )}
+              </button>
+            </div>
+            {generateError && (
+              <p className="mt-2 text-xs text-red-600">{generateError}</p>
+            )}
+          </div>
+
           {/* Preset Selector */}
           <div className="flex items-center gap-4">
             <label className="text-sm font-medium text-gray-700">Podcast Script Preset:</label>
@@ -203,8 +366,10 @@ export function MultiTalkerPlayground({
           {/* Text Input Area */}
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">Dialog Text</label>
-              {selectedVoice && (
+              <label className="block text-sm font-medium text-gray-700">
+                {showSSML ? 'SSML Preview' : 'Dialog Text'}
+              </label>
+              {selectedVoice && !showSSML && (
                 <div className="text-xs text-gray-500">
                   Format: <code className="bg-gray-100 px-1 rounded">speaker: text</code>
                   {' | Speakers: '}
@@ -217,41 +382,36 @@ export function MultiTalkerPlayground({
               )}
             </div>
             <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
+              value={showSSML && selectedVoice
+                ? buildMultiTalkerSSML(text, selectedVoice.name, selectedVoice.locale, selectedVoice.speakers)
+                : text}
+              onChange={(e) => !showSSML && setText(e.target.value)}
               placeholder={`Enter dialog text with speaker prefixes:\nspeaker1: Hello!\nspeaker2: Hi there!`}
-              className="flex-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm resize-none"
+              className={`flex-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm resize-none ${showSSML ? 'bg-gray-900 text-green-400' : ''}`}
               disabled={state === 'synthesizing' || state === 'playing'}
+              readOnly={showSSML}
             />
-            <div className="mt-1 text-xs text-gray-500">
-              {text.split('\n').filter(l => l.trim()).length} lines | {text.length} characters
-            </div>
-          </div>
-
-          {/* SSML Preview Toggle */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setShowSSML(!showSSML)}
-              className="w-full px-4 py-2 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors text-sm"
-            >
-              <span className="font-medium text-gray-700">SSML Preview</span>
-              <svg
-                className={`w-4 h-4 text-gray-500 transition-transform ${showSSML ? 'rotate-180' : ''}`}
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-            {showSSML && (
-              <div className="p-4 bg-gray-900 text-green-400 font-mono text-xs overflow-x-auto max-h-48 overflow-y-auto">
-                <pre>{generatedSSML || 'SSML will appear after synthesis'}</pre>
+            <div className="mt-2 flex items-center justify-between">
+              <div className="text-xs text-gray-500">
+                {text.split('\n').filter(l => l.trim()).length} lines | {text.length} characters
               </div>
-            )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowSSML(!showSSML)}
+                  disabled={!selectedVoice || !text}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {showSSML ? 'Show Plain Text' : 'Show SSML'}
+                </button>
+                <button
+                  onClick={() => setText('')}
+                  disabled={!text}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Clear Text
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Playback Controls */}

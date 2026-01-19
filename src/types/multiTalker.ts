@@ -118,14 +118,13 @@ export function buildMultiTalkerSSML(
       // Find matching speaker (case-insensitive)
       const speakerIndex = speakersLower.indexOf(speakerLower);
       if (speakerIndex >= 0 && content) {
-        // Use the original speaker name from the speakers array
-        const actualSpeaker = speakers[speakerIndex];
-        return `<mstts:turn speaker="${actualSpeaker}">${escapeXml(content)}</mstts:turn>`;
+        // Use lowercase speaker name in SSML
+        return `<mstts:turn speaker="${speakerLower}">${escapeXml(content)}</mstts:turn>`;
       }
     }
     // Default to first speaker if no valid prefix - use the whole line as content
     if (line.trim()) {
-      return `<mstts:turn speaker="${speakers[0]}">${escapeXml(line.trim())}</mstts:turn>`;
+      return `<mstts:turn speaker="${speakers[0].toLowerCase()}">${escapeXml(line.trim())}</mstts:turn>`;
     }
     return '';
   }).filter(turn => turn).join('\n');
