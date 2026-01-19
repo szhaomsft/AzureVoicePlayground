@@ -20,7 +20,7 @@ import {
   type ClientEventSessionAvatarConnect,
 } from '@azure/ai-voicelive';
 import type { VoiceLiveChatConfig, ChatMessage, AvatarConfig } from './chatDefaults';
-import { Pcm16Player } from './audio/pcmPlayer';
+import { Pcm16Player, type VolumeCallback } from './audio/pcmPlayer';
 
 export type ChatState = {
   isConnected: boolean;
@@ -68,6 +68,10 @@ export class VoiceLiveChatClient {
 
   get snapshot(): ChatState {
     return this.state;
+  }
+
+  setPlaybackVolumeCallback(callback: VolumeCallback | null) {
+    this.pcmPlayer.setVolumeCallback(callback);
   }
 
   private setState(patch: Partial<ChatState>) {

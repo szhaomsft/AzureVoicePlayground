@@ -34,6 +34,7 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
   const [isConnected, setIsConnected] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isAvatarConnected, setIsAvatarConnected] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [statusText, setStatusText] = useState('');
@@ -115,6 +116,38 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
       audioHandlerRef.current.setCircleElement(circleRef.current);
     }
   }, []);
+
+  // Helper to update circle with playback animation
+  const updateCircleForPlayback = useCallback((volume: number) => {
+    // Update playing state based on volume
+    setIsPlaying(volume > 0);
+
+    if (!circleRef.current) return;
+
+    const minSize = 120;
+    const size = minSize + volume * 0.8;
+    const intensity = Math.min(volume / 128, 1);
+
+    // Purple to pink gradient for playback
+    const hue1 = 260 + intensity * 20;
+    const hue2 = 300 + intensity * 30;
+    const saturation = 60 + intensity * 40;
+    const lightness = 70 - intensity * 20;
+    const gradient = `linear-gradient(135deg, hsl(${hue1}, ${saturation}%, ${lightness}%), hsl(${hue2}, ${saturation}%, ${lightness}%))`;
+
+    circleRef.current.style.background = gradient;
+    circleRef.current.style.width = `${size}px`;
+    circleRef.current.style.height = `${size}px`;
+    circleRef.current.style.boxShadow = `0 0 ${20 + intensity * 30}px rgba(168, 85, 247, ${0.3 + intensity * 0.4})`;
+  }, []);
+
+  // Set up playback volume callback
+  useEffect(() => {
+    chatClient.setPlaybackVolumeCallback(updateCircleForPlayback);
+    return () => {
+      chatClient.setPlaybackVolumeCallback(null);
+    };
+  }, [chatClient, updateCircleForPlayback]);
 
   async function handleConnect() {
     if (isConnected) return;
@@ -256,14 +289,27 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
                 backgroundColor: '#e5e7eb',
               }}
             >
-              <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                />
-              </svg>
+              {isPlaying ? (
+                /* Speaker icon when AI is speaking */
+                <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                  />
+                </svg>
+              ) : (
+                /* Mic icon when recording/idle */
+                <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                  />
+                </svg>
+              )}
             </div>
             {!isConnected && (
               <p className="text-sm text-gray-400 mt-2">Click Start to begin conversation</p>
