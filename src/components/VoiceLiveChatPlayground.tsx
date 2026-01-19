@@ -244,59 +244,66 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
           </div>
         </div>
 
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
-          {/* Avatar Video Display - only shown when feature flag is enabled */}
-          {showAvatarFeature && config.avatar.enabled && (
-            <div className="flex flex-col items-center mb-4">
-              <div
-                ref={videoContainerRef}
-                className="rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center"
-                style={{ width: '400px', height: '400px' }}
-              >
-                {!isAvatarConnected && (
-                  <div className="text-gray-400 text-center">
-                    <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <p>{isConnected ? 'Connecting avatar...' : 'Avatar will appear here'}</p>
-                  </div>
-                )}
-              </div>
-              {isAvatarConnected && (
-                <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  Avatar Connected
-                </span>
+        {/* Audio visualization circle - fixed at top, doesn't scroll */}
+        {!(showAvatarFeature && config.avatar.enabled) && (
+          <div className="flex-shrink-0 flex flex-col items-center py-4 bg-white border-b border-gray-100">
+            <div
+              ref={circleRef}
+              className="rounded-full transition-all duration-150 ease-out flex items-center justify-center"
+              style={{
+                width: '120px',
+                height: '120px',
+                backgroundColor: '#e5e7eb',
+              }}
+            >
+              <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                />
+              </svg>
+            </div>
+            {!isConnected && (
+              <p className="text-sm text-gray-400 mt-2">Click Start to begin conversation</p>
+            )}
+          </div>
+        )}
+
+        {/* Avatar Video Display - fixed at top when avatar is enabled */}
+        {showAvatarFeature && config.avatar.enabled && (
+          <div className="flex-shrink-0 flex flex-col items-center py-4 bg-white border-b border-gray-100">
+            <div
+              ref={videoContainerRef}
+              className="rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center"
+              style={{ width: '400px', height: '400px' }}
+            >
+              {!isAvatarConnected && (
+                <div className="text-gray-400 text-center">
+                  <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <p>{isConnected ? 'Connecting avatar...' : 'Avatar will appear here'}</p>
+                </div>
               )}
             </div>
-          )}
+            {isAvatarConnected && (
+              <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                Avatar Connected
+              </span>
+            )}
+          </div>
+        )}
 
-          {messages.length === 0 && !(showAvatarFeature && config.avatar.enabled) ? (
+        {/* Chat Messages - scrollable */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
+          {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400">
-              {/* Audio visualization circle */}
-              <div
-                ref={circleRef}
-                className="rounded-full transition-all duration-150 ease-out flex items-center justify-center mb-6"
-                style={{
-                  width: '120px',
-                  height: '120px',
-                  backgroundColor: '#e5e7eb',
-                }}
-              >
-                <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                  />
-                </svg>
-              </div>
-              <p className="text-lg">Click Start to begin conversation</p>
-              <p className="text-sm mt-2">Speak naturally and the AI will respond</p>
+              <p className="text-sm">Speak naturally and the AI will respond</p>
             </div>
-          ) : messages.length > 0 ? (
+          ) : (
             <>
               {messages.map((msg) => (
                 <div
@@ -311,7 +318,7 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
               ))}
               <div ref={messagesEndRef} />
             </>
-          ) : null}
+          )}
         </div>
 
         {/* Text Input & Status */}

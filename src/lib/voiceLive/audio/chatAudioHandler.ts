@@ -205,9 +205,32 @@ export class ChatAudioHandler {
 
     const minSize = 120;
     const size = minSize + volume * 0.8;
-    this.circleElement.style.backgroundColor = type === 'record' ? '#e5e7eb' : '#bfdbfe';
+
+    // Normalize volume to 0-1 range for color interpolation
+    const intensity = Math.min(volume / 128, 1);
+
+    // Colorful gradients based on type and intensity
+    let gradient: string;
+    if (type === 'record') {
+      // Recording: green to teal gradient, more vibrant with higher volume
+      const hue1 = 160 + intensity * 20; // teal range
+      const hue2 = 180 + intensity * 30; // cyan range
+      const saturation = 60 + intensity * 40;
+      const lightness = 70 - intensity * 20;
+      gradient = `linear-gradient(135deg, hsl(${hue1}, ${saturation}%, ${lightness}%), hsl(${hue2}, ${saturation}%, ${lightness}%))`;
+    } else {
+      // Playing: purple to pink gradient, more vibrant with higher volume
+      const hue1 = 260 + intensity * 20; // purple range
+      const hue2 = 300 + intensity * 30; // pink range
+      const saturation = 60 + intensity * 40;
+      const lightness = 70 - intensity * 20;
+      gradient = `linear-gradient(135deg, hsl(${hue1}, ${saturation}%, ${lightness}%), hsl(${hue2}, ${saturation}%, ${lightness}%))`;
+    }
+
+    this.circleElement.style.background = gradient;
     this.circleElement.style.width = `${size}px`;
     this.circleElement.style.height = `${size}px`;
+    this.circleElement.style.boxShadow = `0 0 ${20 + intensity * 30}px rgba(${type === 'record' ? '20, 184, 166' : '168, 85, 247'}, ${0.3 + intensity * 0.4})`;
   }
 
   async close() {
