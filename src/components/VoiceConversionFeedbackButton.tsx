@@ -1,35 +1,31 @@
 import React from 'react';
 
-interface FeedbackButtonProps {
-  text: string;
-  selectedVoice: string;
+interface VoiceConversionFeedbackButtonProps {
+  sourceFileName: string | null;
+  targetVoice: string | null;
   region: string;
   audioData: ArrayBuffer | null;
 }
 
-export function FeedbackButton({ text, selectedVoice, region, audioData }: FeedbackButtonProps) {
+export function VoiceConversionFeedbackButton({
+  sourceFileName,
+  targetVoice,
+  region,
+  audioData,
+}: VoiceConversionFeedbackButtonProps) {
   const handleSendFeedback = async () => {
     try {
-      const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-  <voice name="${selectedVoice}">
-    ${text}
-  </voice>
-</speak>`;
-
       const emailBody = `
-Voice: ${selectedVoice}
+Source File: ${sourceFileName || '[No file selected]'}
+Target Voice: ${targetVoice || '[No voice selected]'}
 Region: ${region}
 
-SSML:
-${ssml}
-
-Text:
-${text}
-
-${audioData ? 'Please find the audio file attached (downloaded separately).' : '[No audio generated yet]'}
+${audioData ? 'Please find the converted audio file attached (downloaded separately).' : '[No conversion completed yet]'}
       `.trim();
 
-      const subject = encodeURIComponent(`Azure Voice Playground Feedback - ${selectedVoice}`);
+      const subject = encodeURIComponent(
+        `Azure Voice Conversion Feedback - ${targetVoice || 'No voice'}`
+      );
       const body = encodeURIComponent(emailBody);
       const mailtoLink = `mailto:ttsvoicefeedback@microsoft.com?subject=${subject}&body=${body}`;
 
@@ -39,16 +35,11 @@ ${audioData ? 'Please find the audio file attached (downloaded separately).' : '
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `feedback-${selectedVoice}-${Date.now()}.mp3`;
+        a.download = `conversion-${targetVoice || 'output'}-${Date.now()}.mp3`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      }
-
-      // Copy SSML to clipboard
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(ssml);
       }
 
       // Open email client
@@ -67,7 +58,7 @@ ${audioData ? 'Please find the audio file attached (downloaded separately).' : '
     <button
       onClick={handleSendFeedback}
       className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 text-sm font-medium"
-      title="Send feedback with SSML and audio"
+      title="Send feedback about voice conversion"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

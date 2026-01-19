@@ -9,7 +9,10 @@
       "Bash(npm run deploy)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd synthesis history feature with improvements\n\n- Add synthesis history panel at bottom with expandable drawer\n- Display history entries with text snippet, timestamp, voice, region, and duration\n- Each entry has play, save, and delete buttons\n- History limited to 240px height with scrollbar\n- Add to history immediately when synthesis completes \\(not after playback\\)\n- Save files with format: azurevoice-{region}-{voice}-{timestamp}.mp3\n- Remove Save as MP3 button from playback controls\n- Move feedback button to bottom footer with \"Built with...\" text\n- Add collapsible help text behind help button in playback controls\n- Fix bug where changing voice would add duplicate history entries\n- Session-only storage \\(clears on refresh\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(npx tsc:*)",
+      "Bash(npx typescript:*)",
+      "Bash(node_modules.bintsc:*)"
     ]
   }
 }
