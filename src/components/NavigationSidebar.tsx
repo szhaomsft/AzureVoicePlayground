@@ -6,6 +6,7 @@ interface NavigationSidebarProps {
   onModeChange: (mode: PlaygroundMode) => void;
   settings: AzureSettings;
   onSettingsChange: (settings: Partial<AzureSettings>) => void;
+  showPodcastGenerator?: boolean;
 }
 
 const ALL_TTS_REGIONS = [
@@ -62,20 +63,20 @@ const playgroundModes: { mode: PlaygroundMode; label: string; icon: React.ReactN
     ),
   },
   {
+    mode: 'multi-talker',
+    label: 'Podcast Generator',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+  },
+  {
     mode: 'voice-changer',
     label: 'Voice Changer',
     icon: (
       <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-    ),
-  },
-  {
-    mode: 'podcast',
-    label: 'Podcast',
-    icon: (
-      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 0112.728 0" />
       </svg>
     ),
   },
@@ -86,8 +87,15 @@ export function NavigationSidebar({
   onModeChange,
   settings,
   onSettingsChange,
+  showPodcastGenerator = false,
 }: NavigationSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Filter playground modes based on feature flags
+  const visibleModes = playgroundModes.filter(({ mode }) => {
+    if (mode === 'multi-talker' && !showPodcastGenerator) return false;
+    return true;
+  });
 
   return (
     <div
@@ -125,7 +133,7 @@ export function NavigationSidebar({
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">Playground</p>
         )}
         <nav className="space-y-1">
-          {playgroundModes.map(({ mode, label, icon }) => (
+          {visibleModes.map(({ mode, label, icon }) => (
             <button
               key={mode}
               onClick={() => onModeChange(mode)}

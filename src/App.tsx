@@ -1,20 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { useHistoryStorage } from './hooks/useHistoryStorage';
 import { useConversionHistoryStorage } from './hooks/useConversionHistoryStorage';
+import { useMultiTalkerHistoryStorage } from './hooks/useMultiTalkerHistoryStorage';
 import { PlaygroundMode } from './types/azure';
 import { NavigationSidebar } from './components/NavigationSidebar';
 import { TextToSpeechPlayground } from './components/TextToSpeechPlayground';
 import { VoiceChangerPlayground } from './components/VoiceChangerPlayground';
-import { ComingSoonPlaceholder } from './components/ComingSoonPlaceholder';
+import { MultiTalkerPlayground } from './components/MultiTalkerPlayground';
+
+// Check for feature flag in URL: ?podcast=1 or ?podcast=true
+function usePodcastFeatureFlag(): boolean {
+  return useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const podcastParam = params.get('podcast');
+    return podcastParam === '1' || podcastParam === 'true';
+  }, []);
+}
 
 function App() {
   const { settings, updateSettings, isConfigured } = useSettings();
   const [activePlayground, setActivePlayground] = useState<PlaygroundMode>('text-to-speech');
+  const showPodcastGenerator = usePodcastFeatureFlag();
 
   // Lift history state to App level so it persists when switching playgrounds
   const ttsHistory = useHistoryStorage();
   const conversionHistory = useConversionHistoryStorage();
+  const multiTalkerHistory = useMultiTalkerHistoryStorage();
 
   const renderPlayground = () => {
     switch (activePlayground) {
@@ -42,11 +54,16 @@ function App() {
             clearHistory={conversionHistory.clearHistory}
           />
         );
-      case 'podcast':
+      case 'multi-talker':
         return (
-          <ComingSoonPlaceholder
-            title="Podcast"
-            description="Create multi-speaker podcast content with AI-powered voices."
+          <MultiTalkerPlayground
+            settings={settings}
+            onSettingsChange={updateSettings}
+            isConfigured={isConfigured}
+            history={multiTalkerHistory.history}
+            addToHistory={multiTalkerHistory.addToHistory}
+            removeFromHistory={multiTalkerHistory.removeFromHistory}
+            clearHistory={multiTalkerHistory.clearHistory}
           />
         );
       default:
@@ -62,6 +79,7 @@ function App() {
         onModeChange={setActivePlayground}
         settings={settings}
         onSettingsChange={updateSettings}
+        showPodcastGenerator={showPodcastGenerator}
       />
 
       {/* Main Playground Area */}

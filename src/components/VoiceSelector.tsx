@@ -50,6 +50,9 @@ export function VoiceSelector({
   }, [apiKey, region]);
 
   const filteredVoices = voices.filter((voice) => {
+    // Exclude multi-talker voices (they belong in Podcast Generator)
+    if (voice.name.toLowerCase().includes('multitalker')) return false;
+
     // Apply preset filter first
     if (filterPreset) {
       switch (filterPreset) {

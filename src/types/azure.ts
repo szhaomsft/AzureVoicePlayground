@@ -33,7 +33,7 @@ export interface WordBoundary {
 
 export type SynthesisState = 'idle' | 'synthesizing' | 'playing' | 'paused' | 'error';
 
-export type PlaygroundMode = 'text-to-speech' | 'voice-changer' | 'podcast';
+export type PlaygroundMode = 'text-to-speech' | 'voice-changer' | 'multi-talker';
 
 export interface SynthesisResult {
   audioData?: ArrayBuffer;
