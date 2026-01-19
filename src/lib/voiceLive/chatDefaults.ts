@@ -19,7 +19,6 @@ export interface VoiceLiveChatConfig {
   model: string;
   instructions: string;
   voice: string;
-  voiceType: 'standard' | 'openai';
   recognitionLanguage: string;
   turnDetectionType: 'server_vad' | 'azure_semantic_vad';
   removeFillerWords: boolean;
@@ -40,10 +39,9 @@ export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
 export const DEFAULT_CHAT_CONFIG: VoiceLiveChatConfig = {
   endpoint: '',
   apiKey: '',
-  model: 'gpt-4o-realtime-preview',
+  model: 'gpt-realtime',
   instructions: 'You are a helpful and friendly AI assistant. Be concise and natural in your responses.',
-  voice: 'en-US-AvaMultilingualNeural',
-  voiceType: 'standard',
+  voice: 'en-us-ava:DragonHDLatestNeural',
   recognitionLanguage: 'auto',
   turnDetectionType: 'server_vad',
   removeFillerWords: false,
@@ -54,8 +52,8 @@ export const DEFAULT_CHAT_CONFIG: VoiceLiveChatConfig = {
 };
 
 export const CHAT_MODEL_OPTIONS = [
-  { id: 'gpt-4o-realtime-preview', name: 'GPT-4o Realtime Preview' },
-  { id: 'gpt-4o-mini-realtime-preview', name: 'GPT-4o Mini Realtime Preview' },
+  { id: 'gpt-realtime', name: 'GPT Realtime' },
+  { id: 'gpt-realtime-mini', name: 'GPT Realtime Mini' },
 ];
 
 export const RECOGNITION_LANGUAGES = [
@@ -75,32 +73,31 @@ export const RECOGNITION_LANGUAGES = [
   { code: 'hi-IN', name: 'Hindi' },
 ];
 
-export const CHAT_VOICES = {
-  standard: [
-    { id: 'en-us-ava:DragonHDLatestNeural', name: 'Ava (DragonHD)' },
-    { id: 'en-us-andrew:DragonHDLatestNeural', name: 'Andrew (DragonHD)' },
-    { id: 'en-us-emma:DragonHDLatestNeural', name: 'Emma (DragonHD)' },
-    { id: 'en-us-steffan:DragonHDLatestNeural', name: 'Steffan (DragonHD)' },
-    { id: 'en-US-AvaMultilingualNeural', name: 'Ava Multilingual' },
-    { id: 'en-US-AndrewMultilingualNeural', name: 'Andrew Multilingual' },
-    { id: 'en-US-EmmaMultilingualNeural', name: 'Emma Multilingual' },
-    { id: 'en-US-BrianMultilingualNeural', name: 'Brian Multilingual' },
-    { id: 'zh-CN-XiaoxiaoMultilingualNeural', name: 'Xiaoxiao Multilingual' },
-    { id: 'zh-cn-xiaochen:DragonHDLatestNeural', name: 'Xiaochen (DragonHD)' },
-    { id: 'ja-jp-masaru:DragonHDLatestNeural', name: 'Masaru (DragonHD)' },
-    { id: 'de-DE-Seraphina:DragonHDLatestNeural', name: 'Seraphina (DragonHD)' },
-  ],
-  openai: [
-    { id: 'alloy', name: 'Alloy' },
-    { id: 'ash', name: 'Ash' },
-    { id: 'ballad', name: 'Ballad' },
-    { id: 'coral', name: 'Coral' },
-    { id: 'echo', name: 'Echo' },
-    { id: 'sage', name: 'Sage' },
-    { id: 'shimmer', name: 'Shimmer' },
-    { id: 'verse', name: 'Verse' },
-  ],
-};
+export const CHAT_VOICES = [
+  // Azure HD Voices (DragonHD)
+  { id: 'en-us-ava:DragonHDLatestNeural', name: 'Ava (DragonHD)' },
+  { id: 'en-us-andrew:DragonHDLatestNeural', name: 'Andrew (DragonHD)' },
+  { id: 'en-us-emma:DragonHDLatestNeural', name: 'Emma (DragonHD)' },
+  { id: 'en-us-steffan:DragonHDLatestNeural', name: 'Steffan (DragonHD)' },
+  { id: 'zh-cn-xiaochen:DragonHDLatestNeural', name: 'Xiaochen (DragonHD)' },
+  { id: 'ja-jp-masaru:DragonHDLatestNeural', name: 'Masaru (DragonHD)' },
+  { id: 'de-DE-Seraphina:DragonHDLatestNeural', name: 'Seraphina (DragonHD)' },
+  // Azure Multilingual Voices
+  { id: 'en-US-AvaMultilingualNeural', name: 'Ava Multilingual' },
+  { id: 'en-US-AndrewMultilingualNeural', name: 'Andrew Multilingual' },
+  { id: 'en-US-EmmaMultilingualNeural', name: 'Emma Multilingual' },
+  { id: 'en-US-BrianMultilingualNeural', name: 'Brian Multilingual' },
+  { id: 'zh-CN-XiaoxiaoMultilingualNeural', name: 'Xiaoxiao Multilingual' },
+  // OpenAI Voices
+  { id: 'alloy', name: 'Alloy (OpenAI)' },
+  { id: 'ash', name: 'Ash (OpenAI)' },
+  { id: 'ballad', name: 'Ballad (OpenAI)' },
+  { id: 'coral', name: 'Coral (OpenAI)' },
+  { id: 'echo', name: 'Echo (OpenAI)' },
+  { id: 'sage', name: 'Sage (OpenAI)' },
+  { id: 'shimmer', name: 'Shimmer (OpenAI)' },
+  { id: 'verse', name: 'Verse (OpenAI)' },
+];
 
 export const VIDEO_AVATARS = [
   { id: 'lisa-casual-sitting', name: 'Lisa (Casual Sitting)', character: 'lisa', style: 'casual-sitting' },

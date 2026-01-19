@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   DEFAULT_CHAT_CONFIG,
   CHAT_MODEL_OPTIONS,
@@ -116,10 +116,6 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
     }
   }, []);
 
-  const voices = useMemo(() => {
-    return config.voiceType === 'openai' ? CHAT_VOICES.openai : CHAT_VOICES.standard;
-  }, [config.voiceType]);
-
   async function handleConnect() {
     if (isConnected) return;
 
@@ -221,11 +217,11 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
       {/* Left side - Main Chat Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 shadow-md">
+        <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white p-6 shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Voice Live Chat</h1>
-              <p className="text-blue-100 mt-1">
+              <p className="text-teal-100 mt-1">
                 Real-time voice conversation with AI
               </p>
             </div>
@@ -381,24 +377,6 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
             </select>
           </div>
 
-          {/* Voice Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Voice Type</label>
-            <select
-              value={config.voiceType}
-              onChange={(e) => {
-                const newType = e.target.value as 'standard' | 'openai';
-                const defaultVoice = newType === 'openai' ? 'alloy' : 'en-US-AvaMultilingualNeural';
-                setConfig((c) => ({ ...c, voiceType: newType, voice: defaultVoice }));
-              }}
-              disabled={isConnected}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-            >
-              <option value="standard">Azure Neural</option>
-              <option value="openai">OpenAI</option>
-            </select>
-          </div>
-
           {/* Voice */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Voice</label>
@@ -408,7 +386,7 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
               disabled={isConnected}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
             >
-              {voices.map((v) => (
+              {CHAT_VOICES.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
                 </option>

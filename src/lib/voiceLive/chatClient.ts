@@ -133,7 +133,9 @@ export class VoiceLiveChatClient {
   }
 
   private buildSessionConfig(config: VoiceLiveChatConfig): RequestSession {
-    const isOpenAIVoice = config.voiceType === 'openai' || !config.voice.includes('-');
+    // OpenAI voices are simple names without hyphens or colons (alloy, shimmer, etc.)
+    // Azure voices contain hyphens or colons (en-US-AvaMultilingualNeural, en-us-ava:DragonHDLatestNeural)
+    const isOpenAIVoice = !config.voice.includes('-') && !config.voice.includes(':');
     const avatarSdkConfig = this.buildAvatarConfig(config.avatar);
     const modalities: string[] = ['text', 'audio'];
     if (avatarSdkConfig) {
