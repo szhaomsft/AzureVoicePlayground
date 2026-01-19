@@ -137,17 +137,19 @@ export function TextToSpeechPlayground({
       </div>
 
       {/* Right side - Voice Selector */}
-      <div className="w-full md:w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 p-6 overflow-y-auto">
+      <div className="w-full md:w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 p-6 flex flex-col overflow-hidden">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Voice Selection</h2>
-        <VoiceSelector
-          apiKey={settings.apiKey}
-          region={settings.region}
-          selectedVoice={settings.selectedVoice}
-          onVoiceChange={(voice) => {
-            console.log('TTSPlayground: Voice changed to:', voice);
-            onSettingsChange({ selectedVoice: voice });
-          }}
-        />
+        <div className="flex-1 min-h-0">
+          <VoiceSelector
+            apiKey={settings.apiKey}
+            region={settings.region}
+            selectedVoice={settings.selectedVoice}
+            onVoiceChange={(voice) => {
+              console.log('TTSPlayground: Voice changed to:', voice);
+              onSettingsChange({ selectedVoice: voice });
+            }}
+          />
+        </div>
       </div>
     </div>
   );

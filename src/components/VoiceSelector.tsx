@@ -117,7 +117,7 @@ export function VoiceSelector({
   }, [searchTerm, filteredVoices.length, filterPreset]);
 
   return (
-    <div className="space-y-2">
+    <div className="h-full flex flex-col space-y-2">
       <label className="block text-sm font-medium text-gray-700">Voice</label>
 
       {error && (
@@ -191,43 +191,22 @@ export function VoiceSelector({
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       />
 
-      <select
-        value={selectedVoice}
-        onChange={(e) => {
-          const selectedVoiceName = e.target.value;
-          console.log('Voice changed to:', selectedVoiceName);
+      {/* Selected voice display */}
+      {selectedVoice && (
+        <div className="p-2 bg-blue-50 border border-blue-200 rounded-md flex-shrink-0">
+          <div className="text-xs text-blue-600 font-medium">Selected:</div>
+          <div className="text-sm text-blue-800 truncate">{selectedVoice}</div>
+        </div>
+      )}
 
-          // Find the full voice object and dump all attributes
-          const voiceObject = filteredVoices.find(v => v.name === selectedVoiceName);
-
-          if (voiceObject) {
-            console.log('=== VOICE ATTRIBUTES ===');
-            console.log('Full Voice Object:', voiceObject);
-            console.table({
-              name: voiceObject.name,
-              locale: voiceObject.locale,
-              gender: voiceObject.gender,
-              description: voiceObject.description,
-              voiceType: voiceObject.voiceType,
-              isNeuralHD: voiceObject.isNeuralHD,
-              isFeatured: voiceObject.isFeatured,
-              wordsPer: voiceObject.wordsPer,
-            });
-            console.log('Style List:', voiceObject.styleList);
-            console.log('Keywords:', voiceObject.keywords);
-            console.log('Voice Tag:', voiceObject.voiceTag);
-            console.log('========================');
-          }
-
-          onVoiceChange(selectedVoiceName);
-        }}
-        disabled={loading}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-      >
-        {loading && <option>Loading voices...</option>}
+      {/* Voice list */}
+      <div className="flex-1 overflow-y-auto border border-gray-200 rounded-md min-h-0">
+        {loading && (
+          <div className="p-4 text-center text-gray-500 text-sm">Loading voices...</div>
+        )}
 
         {!loading && filteredVoices.length === 0 && (
-          <option>No voices found</option>
+          <div className="p-4 text-center text-gray-500 text-sm">No voices found</div>
         )}
 
         {!loading &&
@@ -243,15 +222,47 @@ export function VoiceSelector({
             const tagsText = tags.length > 0 ? ` [${tags.join(', ')}]` : '';
 
             return (
-              <option key={voice.name} value={voice.name}>
-                {voice.isFeatured ? '⭐ ' : ''}
-                {voice.name}{tagsText}
-              </option>
+              <button
+                key={voice.name}
+                onClick={() => {
+                  console.log('Voice changed to:', voice.name);
+                  console.log('=== VOICE ATTRIBUTES ===');
+                  console.log('Full Voice Object:', voice);
+                  console.table({
+                    name: voice.name,
+                    locale: voice.locale,
+                    gender: voice.gender,
+                    description: voice.description,
+                    voiceType: voice.voiceType,
+                    isNeuralHD: voice.isNeuralHD,
+                    isFeatured: voice.isFeatured,
+                    wordsPer: voice.wordsPer,
+                  });
+                  console.log('Style List:', voice.styleList);
+                  console.log('Keywords:', voice.keywords);
+                  console.log('Voice Tag:', voice.voiceTag);
+                  console.log('========================');
+                  onVoiceChange(voice.name);
+                }}
+                className={`w-full px-4 py-3 text-left border-b border-gray-100 last:border-b-0 transition-colors ${
+                  selectedVoice === voice.name
+                    ? 'bg-blue-50 border-l-4 border-l-blue-600'
+                    : 'hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-medium text-gray-800 text-sm">
+                  {voice.isFeatured ? '⭐ ' : ''}
+                  {voice.name}
+                </div>
+                {tagsText && (
+                  <div className="text-xs text-gray-500 mt-0.5">{tagsText}</div>
+                )}
+              </button>
             );
           })}
-      </select>
+      </div>
 
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-gray-500 flex-shrink-0 pt-2">
         {filteredVoices.length} voice{filteredVoices.length !== 1 ? 's' : ''} available
         {searchTerm && ` (filtered from ${voices.length})`}
       </div>

@@ -35,7 +35,7 @@ export function VoiceConversionSelector({
     });
   }, [searchTerm, genderFilter]);
 
-  const genderFilters: GenderFilter[] = ['All', 'Female', 'Male', 'Neutral'];
+  const genderFilters: GenderFilter[] = ['All', 'Female', 'Male'];
 
   return (
     <div className="space-y-4">
@@ -66,6 +66,14 @@ export function VoiceConversionSelector({
         onChange={(e) => setSearchTerm(e.target.value)}
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       />
+
+      {/* Selected voice display */}
+      {selectedVoice && (
+        <div className="p-2 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="text-xs text-blue-600 font-medium">Selected:</div>
+          <div className="text-sm text-blue-800 truncate">{selectedVoice.displayName}</div>
+        </div>
+      )}
 
       {/* Voice list */}
       <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-md">
