@@ -245,7 +245,7 @@ export function NavigationSidebar({
                 rel="noopener noreferrer"
                 className="text-xs text-blue-400 hover:text-blue-300 underline"
               >
-                Get credentials from Azure AI Foundry
+                Get credentials
               </a>
             </div>
 
@@ -272,7 +272,7 @@ export function NavigationSidebar({
                     rel="noopener noreferrer"
                     className="text-blue-400 hover:text-blue-300 underline"
                   >
-                    Get credentials from Azure AI Foundry
+                    Get credentials
                   </a>
                 </li>
                 <li>Enter Endpoint and API Key</li>
