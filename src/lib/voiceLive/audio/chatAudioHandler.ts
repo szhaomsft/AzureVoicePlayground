@@ -22,6 +22,11 @@ export class ChatAudioHandler {
   }
 
   async initialize() {
+    // Recreate AudioContext if it was closed
+    if (this.context.state === 'closed') {
+      this.context = new AudioContext({ sampleRate: this.sampleRate });
+    }
+
     // Use import.meta.env.BASE_URL for proper path resolution in Vite
     // Cast to any to work around type definition issues
     const basePath = (import.meta as any).env?.BASE_URL || '/';

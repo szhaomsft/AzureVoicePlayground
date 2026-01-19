@@ -313,7 +313,9 @@ export class VoiceLiveChatClient {
         }
       },
       onInputAudioBufferSpeechStarted: async () => {
-        console.log('[VoiceLive Chat] Speech started');
+        console.log('[VoiceLive Chat] Speech started - interrupting playback');
+        // Stop current audio playback immediately when user starts speaking
+        this.pcmPlayer.stop();
         this.setState({ isSpeaking: true });
       },
       onInputAudioBufferSpeechStopped: async () => {
