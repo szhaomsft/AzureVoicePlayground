@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AzureSettings, PlaygroundMode } from '../types/azure';
+import { BUILD_TIMESTAMP, BUILD_COMMIT } from '../buildTimestamp';
 
 interface NavigationSidebarProps {
   activeMode: PlaygroundMode;
@@ -253,9 +254,20 @@ export function NavigationSidebar({
       {/* Footer */}
       <div className="p-3 border-t border-gray-700">
         {!isCollapsed && (
-          <p className="text-xs text-gray-500 text-center">
-            API key stored locally
-          </p>
+          <div className="text-xs text-gray-500 text-center space-y-1">
+            <p>API key stored locally</p>
+            <p className="text-gray-600">
+              Build: <a
+                href={`https://github.com/szhaomsft/AzureVoicePlayground/commit/${BUILD_COMMIT}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 underline"
+              >{BUILD_COMMIT}</a>
+            </p>
+            <p className="text-gray-600">
+              {new Date(BUILD_TIMESTAMP).toLocaleString()}
+            </p>
+          </div>
         )}
       </div>
     </div>

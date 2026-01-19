@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { WordBoundary, SynthesisState } from '../types/azure';
 import { getLanguageFromVoice, getPresetsForLanguage } from '../utils/languagePresets';
-import { BUILD_TIMESTAMP } from '../buildTimestamp';
 
 interface TextInputProps {
   text: string;
@@ -96,12 +95,7 @@ export function TextInput({
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold text-gray-800">Text to Synthesize</h2>
-          <span className="text-xs text-gray-400">
-            Build: {new Date(BUILD_TIMESTAMP).toLocaleString()}
-          </span>
-        </div>
+        <h2 className="text-2xl font-bold text-gray-800">Text to Synthesize</h2>
         <div className="flex gap-4 text-sm text-gray-600">
           <span>
             {wordCount} word{wordCount !== 1 ? 's' : ''}
