@@ -4,6 +4,9 @@ export interface AzureSettings {
   apiKey: string;
   region: string;
   selectedVoice: string;
+  // Voice Live settings
+  voiceLiveEndpoint?: string;
+  voiceLiveApiKey?: string;
 }
 
 export interface VoiceInfo {
@@ -33,7 +36,7 @@ export interface WordBoundary {
 
 export type SynthesisState = 'idle' | 'synthesizing' | 'playing' | 'paused' | 'error';
 
-export type PlaygroundMode = 'text-to-speech' | 'voice-changer' | 'multi-talker';
+export type PlaygroundMode = 'text-to-speech' | 'voice-changer' | 'multi-talker' | 'voice-live-chat' | 'voice-live-translator';
 
 export interface SynthesisResult {
   audioData?: ArrayBuffer;

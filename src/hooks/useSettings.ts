@@ -3,12 +3,37 @@ import { AzureSettings } from '../types/azure';
 
 const STORAGE_KEY = 'azure-tts-settings';
 const API_KEYS_STORAGE_KEY = 'azure-tts-api-keys';
+const VOICE_LIVE_STORAGE_KEY = 'azure-voice-live-settings';
 
 const DEFAULT_SETTINGS: AzureSettings = {
   apiKey: '',
   region: 'eastus',
   selectedVoice: 'en-US-JennyNeural',
+  voiceLiveEndpoint: '',
+  voiceLiveApiKey: '',
 };
+
+// Load Voice Live settings from localStorage
+function loadVoiceLiveSettings(): { endpoint: string; apiKey: string } {
+  try {
+    const stored = localStorage.getItem(VOICE_LIVE_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Failed to load Voice Live settings from localStorage:', error);
+  }
+  return { endpoint: '', apiKey: '' };
+}
+
+// Save Voice Live settings to localStorage
+function saveVoiceLiveSettings(endpoint: string, apiKey: string) {
+  try {
+    localStorage.setItem(VOICE_LIVE_STORAGE_KEY, JSON.stringify({ endpoint, apiKey }));
+  } catch (error) {
+    console.error('Failed to save Voice Live settings to localStorage:', error);
+  }
+}
 
 // Load API keys from localStorage
 function loadApiKeys(): Record<string, string> {
@@ -37,6 +62,7 @@ export function useSettings() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       const apiKeys = loadApiKeys();
+      const voiceLiveSettings = loadVoiceLiveSettings();
 
       console.log('=== LOADING SETTINGS ===');
 
@@ -67,9 +93,18 @@ export function useSettings() {
         return {
           ...DEFAULT_SETTINGS,
           ...parsedSettings,
-          apiKey
+          apiKey,
+          voiceLiveEndpoint: voiceLiveSettings.endpoint,
+          voiceLiveApiKey: voiceLiveSettings.apiKey,
         };
       }
+
+      // Return defaults with Voice Live settings
+      return {
+        ...DEFAULT_SETTINGS,
+        voiceLiveEndpoint: voiceLiveSettings.endpoint,
+        voiceLiveApiKey: voiceLiveSettings.apiKey,
+      };
     } catch (error) {
       console.error('Failed to load settings from localStorage:', error);
     }
@@ -89,9 +124,9 @@ export function useSettings() {
       console.log('This key will be saved FOR region:', settings.region);
       console.log('===================================');
 
-      // Save settings without API key
-      const { apiKey, ...settingsWithoutKey } = settings;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsWithoutKey));
+      // Save settings without API keys
+      const { apiKey, voiceLiveEndpoint, voiceLiveApiKey, ...settingsWithoutKeys } = settings;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsWithoutKeys));
 
       // Save API key by region
       if (apiKey) {
@@ -99,6 +134,11 @@ export function useSettings() {
         apiKeys[settings.region] = apiKey;
         saveApiKeys(apiKeys);
         console.log(`✅ API key ${maskedKey} saved for region: ${settings.region}`);
+      }
+
+      // Save Voice Live settings
+      if (voiceLiveEndpoint || voiceLiveApiKey) {
+        saveVoiceLiveSettings(voiceLiveEndpoint || '', voiceLiveApiKey || '');
       }
     } catch (error) {
       console.error('Failed to save settings to localStorage:', error);
