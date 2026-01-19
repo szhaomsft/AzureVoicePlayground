@@ -112,6 +112,7 @@ export function NavigationSidebar({
   onSettingsChange,
 }: NavigationSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showSecurityNotice, setShowSecurityNotice] = useState(false);
 
   // All playground modes are now visible
   const visibleModes = playgroundModes;
@@ -250,35 +251,30 @@ export function NavigationSidebar({
             </div>
 
             {/* Security Warning */}
-            <div className="mt-4 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-md">
-              <h3 className="text-xs font-semibold text-yellow-400 mb-1">
-                Security Notice
-              </h3>
-              <p className="text-xs text-yellow-200/70">
-                Your credentials are stored in browser localStorage. Never share your key or use on untrusted devices.
-              </p>
-            </div>
-
-            {/* Help Section */}
-            <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700/50 rounded-md">
-              <h3 className="text-xs font-semibold text-blue-400 mb-2">
-                Getting Started
-              </h3>
-              <ol className="text-xs text-blue-200/70 space-y-1 list-decimal list-inside">
-                <li>
-                  <a
-                    href="https://ai.azure.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 underline"
-                  >
-                    Get credentials
-                  </a>
-                </li>
-                <li>Enter Endpoint and API Key</li>
-                <li>Select Model and Target Language</li>
-                <li>Click Start to begin</li>
-              </ol>
+            <div className="mt-4 bg-yellow-900/30 border border-yellow-700/50 rounded-md overflow-hidden">
+              <button
+                onClick={() => setShowSecurityNotice(!showSecurityNotice)}
+                className="w-full p-3 flex items-center justify-between hover:bg-yellow-900/50 transition-colors"
+              >
+                <h3 className="text-xs font-semibold text-yellow-400">
+                  Security Notice
+                </h3>
+                <svg
+                  className={`w-4 h-4 text-yellow-400 transition-transform ${showSecurityNotice ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showSecurityNotice && (
+                <div className="px-3 pb-3">
+                  <p className="text-xs text-yellow-200/70">
+                    Your credentials are stored in browser localStorage. Never share your key or use on untrusted devices.
+                  </p>
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -331,35 +327,30 @@ export function NavigationSidebar({
             </div>
 
             {/* Security Warning */}
-            <div className="mt-6 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-md">
-              <h3 className="text-xs font-semibold text-yellow-400 mb-1">
-                Security Notice
-              </h3>
-              <p className="text-xs text-yellow-200/70">
-                Your API key is stored in browser localStorage. Never share your key or use on untrusted devices.
-              </p>
-            </div>
-
-            {/* Help Section */}
-            <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700/50 rounded-md">
-              <h3 className="text-xs font-semibold text-blue-400 mb-2">
-                Getting Started
-              </h3>
-              <ol className="text-xs text-blue-200/70 space-y-1 list-decimal list-inside">
-                <li>
-                  <a
-                    href="https://portal.azure.com/#view/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/~/SpeechServices"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 underline"
-                  >
-                    Get API key from Azure
-                  </a>
-                </li>
-                <li>Select your Azure region</li>
-                <li>Choose a voice</li>
-                <li>Enter text and click Play</li>
-              </ol>
+            <div className="mt-6 bg-yellow-900/30 border border-yellow-700/50 rounded-md overflow-hidden">
+              <button
+                onClick={() => setShowSecurityNotice(!showSecurityNotice)}
+                className="w-full p-3 flex items-center justify-between hover:bg-yellow-900/50 transition-colors"
+              >
+                <h3 className="text-xs font-semibold text-yellow-400">
+                  Security Notice
+                </h3>
+                <svg
+                  className={`w-4 h-4 text-yellow-400 transition-transform ${showSecurityNotice ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showSecurityNotice && (
+                <div className="px-3 pb-3">
+                  <p className="text-xs text-yellow-200/70">
+                    Your API key is stored in browser localStorage. Never share your key or use on untrusted devices.
+                  </p>
+                </div>
+              )}
             </div>
           </>
         )}
