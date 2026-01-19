@@ -95,6 +95,17 @@ export function VoiceLiveTranslatorPlayground({ endpoint, apiKey }: VoiceLiveTra
     localStorage.setItem('voicelive.translator.config', JSON.stringify(config));
   }, [config]);
 
+  // Cleanup on unmount - disconnect when switching playgrounds
+  useEffect(() => {
+    return () => {
+      const client = interpreterRef.current;
+      if (client?.snapshot.isConnected) {
+        console.log('[VoiceLive Translator] Disconnecting on unmount');
+        client.disconnect().catch(console.error);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const prevLang = prevLangRef.current;
     if (prevLang === config.targetLanguage) return;

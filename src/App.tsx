@@ -9,20 +9,21 @@ import { TextToSpeechPlayground } from './components/TextToSpeechPlayground';
 import { VoiceChangerPlayground } from './components/VoiceChangerPlayground';
 import { MultiTalkerPlayground } from './components/MultiTalkerPlayground';
 import { VoiceLiveTranslatorPlayground } from './components/VoiceLiveTranslatorPlayground';
+import { VoiceLiveChatPlayground } from './components/VoiceLiveChatPlayground';
 
-// Check for feature flag in URL: ?podcast=1 or ?podcast=true
-function usePodcastFeatureFlag(): boolean {
+// Check for feature flag in URL: ?avatar=1 or ?avatar=true
+function useAvatarFeatureFlag(): boolean {
   return useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    const podcastParam = params.get('podcast');
-    return podcastParam === '1' || podcastParam === 'true';
+    const avatarParam = params.get('avatar');
+    return avatarParam === '1' || avatarParam === 'true';
   }, []);
 }
 
 function App() {
   const { settings, updateSettings, isConfigured } = useSettings();
   const [activePlayground, setActivePlayground] = useState<PlaygroundMode>('text-to-speech');
-  const showPodcastGenerator = usePodcastFeatureFlag();
+  const showAvatarFeature = useAvatarFeatureFlag();
 
   // Lift history state to App level so it persists when switching playgrounds
   const ttsHistory = useHistoryStorage();
@@ -69,19 +70,11 @@ function App() {
         );
       case 'voice-live-chat':
         return (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Voice Live Chat</h2>
-              <p className="text-gray-600 max-w-md">
-                Real-time voice conversation with AI agents. This feature is coming soon.
-              </p>
-            </div>
-          </div>
+          <VoiceLiveChatPlayground
+            endpoint={settings.voiceLiveEndpoint || ''}
+            apiKey={settings.voiceLiveApiKey || ''}
+            showAvatarFeature={showAvatarFeature}
+          />
         );
       case 'voice-live-translator':
         return (
@@ -103,7 +96,6 @@ function App() {
         onModeChange={setActivePlayground}
         settings={settings}
         onSettingsChange={updateSettings}
-        showPodcastGenerator={showPodcastGenerator}
       />
 
       {/* Main Playground Area */}

@@ -7,7 +7,6 @@ interface NavigationSidebarProps {
   onModeChange: (mode: PlaygroundMode) => void;
   settings: AzureSettings;
   onSettingsChange: (settings: Partial<AzureSettings>) => void;
-  showPodcastGenerator?: boolean;
 }
 
 const ALL_TTS_REGIONS = [
@@ -111,15 +110,11 @@ export function NavigationSidebar({
   onModeChange,
   settings,
   onSettingsChange,
-  showPodcastGenerator = false,
 }: NavigationSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Filter playground modes based on feature flags
-  const visibleModes = playgroundModes.filter(({ mode }) => {
-    if (mode === 'multi-talker' && !showPodcastGenerator) return false;
-    return true;
-  });
+  // All playground modes are now visible
+  const visibleModes = playgroundModes;
 
   // Determine if current mode is a Voice Agent mode (has its own config panel)
   const isAgentMode = activeMode === 'voice-live-chat' || activeMode === 'voice-live-translator';
