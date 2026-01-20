@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 interface AudioRecorderProps {
-  onRecordingComplete: (audioBlob: Blob) => void;
+  onRecordingComplete: (audioBlob: Blob | null) => void;
   maxDuration?: number; // in seconds
   minDuration?: number; // in seconds
   disabled?: boolean;
@@ -130,7 +130,8 @@ export function AudioRecorder({
     }
     setAudioUrl(null);
     setDuration(0);
-  }, [audioUrl]);
+    onRecordingComplete(null);
+  }, [audioUrl, onRecordingComplete]);
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

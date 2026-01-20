@@ -32,7 +32,6 @@ interface VoiceCreationPlaygroundProps {
   };
 }
 
-type WizardStep = 'consent' | 'audio' | 'creating' | 'done';
 type CreationTab = 'audio' | 'text-prompt';
 
 export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundProps) {
@@ -50,8 +49,7 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
     }
   });
 
-  // Wizard state
-  const [currentStep, setCurrentStep] = useState<WizardStep>('consent');
+  // Audio state
   const [consentAudio, setConsentAudio] = useState<Blob | null>(null);
   const [voiceAudio, setVoiceAudio] = useState<Blob | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -131,7 +129,6 @@ Bonjour, ceci est ma voix personnelle.`);
     }
 
     setIsCreating(true);
-    setCurrentStep('creating');
     setCreationError(null);
 
     try {
@@ -174,16 +171,12 @@ Bonjour, ceci est ma voix personnelle.`);
       }
 
       setCreationStatus('Voice created successfully!');
-      setCurrentStep('done');
 
       // Refresh voice list
       await loadVoices();
 
-      // Reset wizard after short delay
+      // Clear status after delay (but keep audio for user to re-use if desired)
       setTimeout(() => {
-        setConsentAudio(null);
-        setVoiceAudio(null);
-        setCurrentStep('consent');
         setCreationStatus('');
       }, 3000);
     } catch (error) {
@@ -198,7 +191,6 @@ Bonjour, ceci est ma voix personnelle.`);
       }
       setCreationError(errorMessage);
       setCreationStatus('');
-      setCurrentStep('audio');
     } finally {
       setIsCreating(false);
     }
@@ -387,15 +379,15 @@ Bonjour, ceci est ma voix personnelle.`);
                         </div>
                       </div>
 
-                      {/* Two Steps Side by Side */}
+                      {/* Two Recording Sections Side by Side */}
                       <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 overflow-auto">
-                        {/* Step 1: Consent */}
-                        <div className={`flex flex-col rounded-lg border p-3 ${currentStep === 'consent' ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
+                        {/* Consent Recording */}
+                        <div className="flex flex-col rounded-lg border border-gray-200 bg-white p-3">
                           <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${consentAudio ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
                               {consentAudio ? '✓' : '1'}
                             </span>
-                            <h3 className="text-sm font-semibold text-gray-800">Record Consent</h3>
+                            <h3 className="text-sm font-semibold text-gray-800">Consent</h3>
                           </div>
 
                           <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs flex-shrink-0">
@@ -411,19 +403,10 @@ Bonjour, ceci est ma voix personnelle.`);
                               disabled={isCreating}
                             />
                           </div>
-
-                          {consentAudio && currentStep === 'consent' && (
-                            <button
-                              onClick={() => setCurrentStep('audio')}
-                              className="mt-2 px-3 py-1.5 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 flex-shrink-0"
-                            >
-                              Next Step →
-                            </button>
-                          )}
                         </div>
 
-                        {/* Step 2: Voice Sample */}
-                        <div className={`flex flex-col rounded-lg border p-3 ${currentStep === 'audio' ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
+                        {/* Voice Sample Recording */}
+                        <div className="flex flex-col rounded-lg border border-gray-200 bg-white p-3">
                           <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${voiceAudio ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
                               {voiceAudio ? '✓' : '2'}
@@ -435,9 +418,8 @@ Bonjour, ceci est ma voix personnelle.`);
                             <p className="font-medium">Recording Guidelines (5-90 seconds):</p>
                             <ul className="list-disc list-inside space-y-0.5 text-gray-500">
                               <li>Record in a quiet environment with minimal background noise</li>
-                              <li>Speak in the style/tone you want for your voice (e.g., storytelling, podcast, customer care)</li>
-                              <li>Relax and speak naturally - make your voice sound as realistic as possible</li>
-                              <li>Maintain consistent volume and distance from the microphone</li>
+                              <li>Speak naturally in the style you want for your voice</li>
+                              <li>Maintain consistent volume and microphone distance</li>
                             </ul>
                           </div>
 
@@ -449,35 +431,33 @@ Bonjour, ceci est ma voix personnelle.`);
                               disabled={isCreating}
                             />
                           </div>
-
-                          <button
-                            onClick={handleCreateVoice}
-                            disabled={isCreating || !voiceAudio || !consentAudio || !config.voiceTalentName.trim() || !config.voiceName.trim()}
-                            className="mt-2 px-3 py-1.5 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex-shrink-0"
-                          >
-                            {isCreating ? 'Creating...' : 'Create My Voice'}
-                          </button>
                         </div>
                       </div>
 
-                      {/* Creation Status */}
-                      {(isCreating || creationStatus || creationError) && (
-                        <div className={`p-2 rounded flex-shrink-0 ${creationError ? 'bg-red-50 border border-red-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-                          {creationError ? (
-                            <p className="text-xs text-red-700">{creationError}</p>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              {isCreating && (
-                                <svg className="w-4 h-4 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                              )}
-                              <p className="text-xs text-emerald-700">{creationStatus}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Create Button and Status */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <button
+                          onClick={handleCreateVoice}
+                          disabled={isCreating || !voiceAudio || !consentAudio || !config.voiceTalentName.trim() || !config.voiceName.trim()}
+                          className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+                        >
+                          {isCreating ? 'Creating...' : 'Create My Voice'}
+                        </button>
+
+                        {creationError && (
+                          <p className="text-sm text-red-600">{creationError}</p>
+                        )}
+
+                        {isCreating && creationStatus && (
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            <p className="text-sm text-emerald-700">{creationStatus}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     /* Text Prompt Voice Creation - Compact */
