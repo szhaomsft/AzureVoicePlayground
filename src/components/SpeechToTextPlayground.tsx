@@ -112,12 +112,14 @@ export function SpeechToTextPlayground({
     currentHook.reset();
   };
 
-  const handleRecordingComplete = (blob: Blob) => {
-    setAudioSource(blob);
-    setAudioFileName('recording');
-    setIsUsingRecorder(true);
-    // Reset current transcription
-    currentHook.reset();
+  const handleRecordingComplete = (blob: Blob | null) => {
+    if (blob) {
+      setAudioSource(blob);
+      setAudioFileName('recording');
+      setIsUsingRecorder(true);
+      // Reset current transcription
+      currentHook.reset();
+    }
   };
 
   const handleTranscribe = async () => {
@@ -223,7 +225,6 @@ export function SpeechToTextPlayground({
             <div>
               <AudioRecorder
                 onRecordingComplete={handleRecordingComplete}
-                allowUpload={false}
               />
             </div>
 

@@ -64,12 +64,12 @@ export function useWhisperTranscription(settings: AzureSettings): UseWhisperTran
         settings,
         dataUrl,
         languageCode,
-        abortControllerRef.current.signal
+        abortControllerRef.current!.signal
       );
 
       // Extract job ID from URL
       const jobIdMatch = jobUrl.match(/transcriptions\/([^/]+)/);
-      const extractedJobId = jobIdMatch ? jobIdMatch[1] : jobUrl;
+      const extractedJobId = jobIdMatch?.[1] ?? jobUrl;
       setJobId(extractedJobId);
 
       // Poll for completion
@@ -78,7 +78,7 @@ export function useWhisperTranscription(settings: AzureSettings): UseWhisperTran
         settings,
         jobUrl,
         setPollingStatus,
-        abortControllerRef.current.signal
+        abortControllerRef.current!.signal
       );
 
       if (job.status === 'Failed') {
@@ -92,7 +92,7 @@ export function useWhisperTranscription(settings: AzureSettings): UseWhisperTran
         jobUrl,
         extractedJobId,
         languageCode,
-        abortControllerRef.current.signal
+        abortControllerRef.current!.signal
       );
 
       setTranscript(whisperTranscript);

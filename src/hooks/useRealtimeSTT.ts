@@ -7,6 +7,17 @@ import { RealtimeTranscript, TranscriptSegment, WordTiming } from '../types/tran
 import { STTState } from '../types/stt';
 import { convertToWav16kHz } from '../utils/audioConversion';
 
+// Languages supported for auto-detection (Language Identification)
+// Use one locale per language as per Azure documentation
+// https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=language-identification
+// Note: Language identification only supports up to 4 languages in DetectAudioAtStart mode
+const AUTO_DETECT_LANGUAGES = [
+  'en-US',  // English
+  'zh-CN',  // Chinese (Simplified)
+  'ja-JP',  // Japanese
+  'ko-KR',  // Korean
+];
+
 interface UseRealtimeSTTReturn {
   state: STTState;
   transcript: RealtimeTranscript | null;
@@ -53,15 +64,6 @@ export function useRealtimeSTT(settings: AzureSettings): UseRealtimeSTTReturn {
         settings.region
       );
 
-      // Set language (use en-US as default if auto-detect is selected)
-      if (language !== 'auto') {
-        speechConfig.speechRecognitionLanguage = language;
-      } else {
-        speechConfig.speechRecognitionLanguage = 'en-US';
-        // Note: For true auto-detect, we'd need to use AutoDetectSourceLanguageConfig
-        console.warn('Auto-detect selected, defaulting to en-US');
-      }
-
       // Enable detailed output for word-level timestamps
       speechConfig.outputFormat = SpeechSDK.OutputFormat.Detailed;
 
@@ -71,8 +73,20 @@ export function useRealtimeSTT(settings: AzureSettings): UseRealtimeSTTReturn {
 
       const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(pushStream);
 
-      // Create recognizer
-      const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+      // Create recognizer - use AutoDetectSourceLanguageConfig for auto-detect
+      let recognizer: SpeechSDK.SpeechRecognizer;
+
+      if (language === 'auto') {
+        // Use AutoDetectSourceLanguageConfig with candidate languages
+        const autoDetectConfig = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(AUTO_DETECT_LANGUAGES);
+        recognizer = SpeechSDK.SpeechRecognizer.FromConfig(speechConfig, autoDetectConfig, audioConfig);
+        console.log('Auto-detect enabled with languages:', AUTO_DETECT_LANGUAGES);
+      } else {
+        // Set specific language
+        speechConfig.speechRecognitionLanguage = language;
+        recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+      }
+
       recognizerRef.current = recognizer;
 
       // Initialize transcript
@@ -101,6 +115,14 @@ export function useRealtimeSTT(settings: AzureSettings): UseRealtimeSTTReturn {
           const text = e.result.text;
           const offset = e.result.offset / 10000; // Convert to milliseconds
           const duration = e.result.duration / 10000;
+
+          // Get detected language if auto-detect was used
+          const detectedLanguage = e.result.properties.getProperty(
+            SpeechSDK.PropertyId.SpeechServiceConnection_AutoDetectSourceLanguages
+          );
+          if (detectedLanguage) {
+            console.log(`Detected language: ${detectedLanguage}`);
+          }
 
           // Parse detailed result for confidence and word timings
           let confidence = 0.9; // Default confidence

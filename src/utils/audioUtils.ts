@@ -16,9 +16,9 @@ export function downloadAudioAsMP3(audioData: ArrayBuffer, filename?: string) {
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
-export function getAudioDuration(audioData: ArrayBuffer): Promise<number> {
+export function getAudioDuration(audioData: ArrayBuffer | Blob | File): Promise<number> {
   return new Promise((resolve, reject) => {
-    const blob = new Blob([audioData], { type: 'audio/mpeg' });
+    const blob = audioData instanceof Blob ? audioData : new Blob([audioData], { type: 'audio/mpeg' });
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
 
