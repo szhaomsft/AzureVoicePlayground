@@ -328,6 +328,7 @@ export function SpeechToTextPlayground({
                 setSelectedModel(model);
                 currentHook.reset();
               }}
+              region={settings.region}
             />
 
             {/* Language Selection */}
