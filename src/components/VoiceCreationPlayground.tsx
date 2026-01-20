@@ -81,7 +81,7 @@ Bonjour, ceci est ma voix personnelle.`);
   const isConfigured = settings.apiKey && settings.region;
 
   // Audio-based voice creation only works in these regions
-  const SUPPORTED_AUDIO_REGIONS = ['eastus', 'westeurope', 'southeastasia'];
+  const SUPPORTED_AUDIO_REGIONS = ['eastus', 'eastus2', 'westeurope', 'southeastasia', 'swedencentral'];
   const isAudioRegionSupported = SUPPORTED_AUDIO_REGIONS.includes(settings.region.toLowerCase());
 
   const clientConfig: PersonalVoiceClientConfig = {
@@ -338,8 +338,10 @@ Bonjour, ceci est ma voix personnelle.`);
                               </p>
                               <ul className="text-sm text-amber-700 mt-2 list-disc list-inside">
                                 <li><strong>East US</strong> (eastus)</li>
+                                <li><strong>East US 2</strong> (eastus2)</li>
                                 <li><strong>West Europe</strong> (westeurope)</li>
                                 <li><strong>Southeast Asia</strong> (southeastasia)</li>
+                                <li><strong>Sweden Central</strong> (swedencentral)</li>
                               </ul>
                               <p className="text-sm text-amber-700 mt-2">
                                 Your current region is <strong>{settings.region}</strong>. Please update your region in the sidebar settings.
