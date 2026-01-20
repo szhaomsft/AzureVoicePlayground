@@ -10,6 +10,7 @@ import { VoiceChangerPlayground } from './components/VoiceChangerPlayground';
 import { MultiTalkerPlayground } from './components/MultiTalkerPlayground';
 import { VoiceLiveTranslatorPlayground } from './components/VoiceLiveTranslatorPlayground';
 import { VoiceLiveChatPlayground } from './components/VoiceLiveChatPlayground';
+import { VoiceCreationPlayground } from './components/VoiceCreationPlayground';
 
 // Check for feature flag in URL: ?avatar=1 or ?avatar=true
 function useAvatarFeatureFlag(): boolean {
@@ -66,6 +67,12 @@ function App() {
             addToHistory={multiTalkerHistory.addToHistory}
             removeFromHistory={multiTalkerHistory.removeFromHistory}
             clearHistory={multiTalkerHistory.clearHistory}
+          />
+        );
+      case 'voice-creation':
+        return (
+          <VoiceCreationPlayground
+            settings={settings}
           />
         );
       case 'voice-live-chat':

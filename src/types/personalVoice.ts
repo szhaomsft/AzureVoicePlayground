@@ -1,0 +1,88 @@
+/**
+ * Types for Azure Custom Voice Personal Voice API
+ */
+
+export type PersonalVoiceStatus = 'NotStarted' | 'Running' | 'Succeeded' | 'Failed';
+
+export interface PersonalVoiceProject {
+  id: string;
+  kind: 'PersonalVoice';
+  description?: string;
+  createdDateTime?: string;
+  lastActionDateTime?: string;
+}
+
+export interface Consent {
+  id: string;
+  status: PersonalVoiceStatus;
+  voiceTalentName: string;
+  companyName: string;
+  locale: string;
+  projectId: string;
+  description?: string;
+  createdDateTime?: string;
+  lastActionDateTime?: string;
+}
+
+export interface PersonalVoice {
+  id: string;
+  status: PersonalVoiceStatus;
+  projectId: string;
+  consentId: string;
+  speakerProfileId: string;
+  description?: string;
+  createdDateTime?: string;
+  lastActionDateTime?: string;
+}
+
+export interface CreateConsentParams {
+  projectId: string;
+  consentId: string;
+  voiceTalentName: string;
+  companyName: string;
+  audioFile: Blob;
+  locale: string;
+  description?: string;
+}
+
+export interface CreatePersonalVoiceParams {
+  projectId: string;
+  personalVoiceId: string;
+  consentId: string;
+  audioFiles: Blob[];
+  description?: string;
+}
+
+export interface VoiceCreationConfig {
+  projectId: string;
+  voiceTalentName: string;
+  companyName: string;
+  locale: string;
+}
+
+export const DEFAULT_VOICE_CREATION_CONFIG: VoiceCreationConfig = {
+  projectId: 'personal-voice-playground',
+  voiceTalentName: '',
+  companyName: 'Voice Playground',
+  locale: 'en-US',
+};
+
+export const SUPPORTED_LOCALES = [
+  { code: 'en-US', name: 'English (US)' },
+  { code: 'en-GB', name: 'English (UK)' },
+  { code: 'zh-CN', name: 'Chinese (Simplified)' },
+  { code: 'ja-JP', name: 'Japanese' },
+  { code: 'ko-KR', name: 'Korean' },
+  { code: 'de-DE', name: 'German' },
+  { code: 'fr-FR', name: 'French' },
+  { code: 'es-ES', name: 'Spanish (Spain)' },
+  { code: 'it-IT', name: 'Italian' },
+  { code: 'pt-BR', name: 'Portuguese (Brazil)' },
+];
+
+export type PersonalVoiceModel = 'DragonLatestNeural' | 'PhoenixLatestNeural';
+
+export const PERSONAL_VOICE_MODELS: { id: PersonalVoiceModel; name: string; description: string }[] = [
+  { id: 'DragonLatestNeural', name: 'Dragon (Latest)', description: 'High quality personal voice' },
+  { id: 'PhoenixLatestNeural', name: 'Phoenix (Latest)', description: 'Supports word boundary events' },
+];

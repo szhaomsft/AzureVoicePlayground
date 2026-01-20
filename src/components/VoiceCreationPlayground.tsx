@@ -1,0 +1,677 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { AudioRecorder } from './AudioRecorder';
+import {
+  type PersonalVoice,
+  type PersonalVoiceModel,
+  type VoiceCreationConfig,
+  DEFAULT_VOICE_CREATION_CONFIG,
+  SUPPORTED_LOCALES,
+  PERSONAL_VOICE_MODELS,
+} from '../types/personalVoice';
+import {
+  listPersonalVoices,
+  listConsents,
+  createProject,
+  getProject,
+  createConsent,
+  createPersonalVoice,
+  deletePersonalVoice,
+  deleteConsent,
+  waitForConsentReady,
+  waitForPersonalVoiceReady,
+  synthesizeWithPersonalVoice,
+  buildPersonalVoiceSsml,
+  type PersonalVoiceClientConfig,
+} from '../lib/personalVoice/personalVoiceClient';
+
+interface VoiceCreationPlaygroundProps {
+  settings: {
+    apiKey: string;
+    region: string;
+  };
+}
+
+type WizardStep = 'consent' | 'audio' | 'creating' | 'done';
+type CreationTab = 'audio' | 'text-prompt';
+
+export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundProps) {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<CreationTab>('audio');
+
+  // Config
+  const [config, setConfig] = useState<VoiceCreationConfig>(() => {
+    const raw = localStorage.getItem('voicecreation.config');
+    if (!raw) return { ...DEFAULT_VOICE_CREATION_CONFIG };
+    try {
+      return { ...DEFAULT_VOICE_CREATION_CONFIG, ...JSON.parse(raw) };
+    } catch {
+      return { ...DEFAULT_VOICE_CREATION_CONFIG };
+    }
+  });
+
+  // Wizard state
+  const [currentStep, setCurrentStep] = useState<WizardStep>('consent');
+  const [consentAudio, setConsentAudio] = useState<Blob | null>(null);
+  const [voiceAudio, setVoiceAudio] = useState<Blob | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [creationStatus, setCreationStatus] = useState('');
+  const [creationError, setCreationError] = useState<string | null>(null);
+
+  // Text prompt state
+  const [voiceDescription, setVoiceDescription] = useState('');
+
+  // Voice list
+  const [voices, setVoices] = useState<PersonalVoice[]>([]);
+  const [consents, setConsents] = useState<Consent[]>([]);
+  const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<PersonalVoice | null>(null);
+
+  // TTS testing
+  const [testText, setTestText] = useState('Hello, this is my personal voice speaking.');
+  const [testModel, setTestModel] = useState<PersonalVoiceModel>('DragonLatestNeural');
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [synthesisError, setSynthesisError] = useState<string | null>(null);
+  const [showSsml, setShowSsml] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const isConfigured = settings.apiKey && settings.region;
+
+  const clientConfig: PersonalVoiceClientConfig = {
+    apiKey: settings.apiKey,
+    region: settings.region,
+  };
+
+  // Save config to localStorage
+  useEffect(() => {
+    localStorage.setItem('voicecreation.config', JSON.stringify(config));
+  }, [config]);
+
+  // Load voices and consents on mount
+  const loadVoices = useCallback(async () => {
+    if (!isConfigured) return;
+
+    setIsLoadingVoices(true);
+    try {
+      const [voiceList, consentList] = await Promise.all([
+        listPersonalVoices(clientConfig, config.projectId),
+        listConsents(clientConfig, config.projectId),
+      ]);
+      setVoices(voiceList);
+      setConsents(consentList);
+    } catch (error) {
+      console.error('Failed to load voices:', error);
+    } finally {
+      setIsLoadingVoices(false);
+    }
+  }, [isConfigured, settings.apiKey, settings.region, config.projectId]);
+
+  useEffect(() => {
+    loadVoices();
+  }, [loadVoices]);
+
+  // Ensure project exists
+  const ensureProject = async () => {
+    const existing = await getProject(clientConfig, config.projectId);
+    if (!existing) {
+      await createProject(clientConfig, config.projectId);
+    }
+  };
+
+  // Create voice handler
+  const handleCreateVoice = async () => {
+    if (!consentAudio || !voiceAudio || !config.voiceTalentName) {
+      setCreationError('Please complete all steps before creating voice');
+      return;
+    }
+
+    setIsCreating(true);
+    setCurrentStep('creating');
+    setCreationError(null);
+
+    try {
+      // Step 1: Ensure project exists
+      setCreationStatus('Creating project...');
+      await ensureProject();
+
+      // Step 2: Create consent
+      const consentId = `consent-${Date.now()}`;
+      setCreationStatus('Uploading consent...');
+      await createConsent(clientConfig, {
+        projectId: config.projectId,
+        consentId,
+        voiceTalentName: config.voiceTalentName,
+        companyName: config.companyName,
+        audioFile: consentAudio,
+        locale: config.locale,
+      });
+
+      setCreationStatus('Verifying consent...');
+      const consent = await waitForConsentReady(clientConfig, consentId);
+      if (consent.status === 'Failed') {
+        throw new Error('Consent verification failed. Please ensure the audio clearly states the consent statement.');
+      }
+
+      // Step 3: Create personal voice
+      const personalVoiceId = `voice-${Date.now()}`;
+      setCreationStatus('Creating personal voice...');
+      await createPersonalVoice(clientConfig, {
+        projectId: config.projectId,
+        personalVoiceId,
+        consentId,
+        audioFiles: [voiceAudio],
+      });
+
+      setCreationStatus('Training voice model...');
+      const voice = await waitForPersonalVoiceReady(clientConfig, personalVoiceId);
+      if (voice.status === 'Failed') {
+        throw new Error('Voice creation failed. Please try with a different audio sample.');
+      }
+
+      setCreationStatus('Voice created successfully!');
+      setCurrentStep('done');
+
+      // Refresh voice list
+      await loadVoices();
+
+      // Reset wizard after short delay
+      setTimeout(() => {
+        setConsentAudio(null);
+        setVoiceAudio(null);
+        setCurrentStep('consent');
+        setCreationStatus('');
+      }, 3000);
+    } catch (error) {
+      console.error('Voice creation failed:', error);
+      setCreationError(error instanceof Error ? error.message : 'Voice creation failed');
+      setCurrentStep('consent');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Delete voice handler
+  const handleDeleteVoice = async (voice: PersonalVoice) => {
+    if (!confirm(`Delete voice "${voice.id}"? This cannot be undone.`)) return;
+
+    try {
+      await deletePersonalVoice(clientConfig, voice.id);
+      // Also try to delete associated consent
+      try {
+        await deleteConsent(clientConfig, voice.consentId);
+      } catch {
+        // Consent might already be deleted or shared
+      }
+      await loadVoices();
+      if (selectedVoice?.id === voice.id) {
+        setSelectedVoice(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete voice:', error);
+      alert('Failed to delete voice');
+    }
+  };
+
+  // TTS synthesis handler
+  const handleSynthesize = async () => {
+    if (!selectedVoice || !testText.trim()) return;
+
+    setIsSynthesizing(true);
+    setSynthesisError(null);
+
+    try {
+      const audioData = await synthesizeWithPersonalVoice(
+        clientConfig,
+        testText,
+        selectedVoice.speakerProfileId,
+        config.locale,
+        testModel
+      );
+
+      // Create audio URL and play
+      const blob = new Blob([audioData], { type: 'audio/mp3' });
+      const url = URL.createObjectURL(blob);
+
+      if (audioRef.current) {
+        audioRef.current.src = url;
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.error('Synthesis failed:', error);
+      setSynthesisError(error instanceof Error ? error.message : 'Synthesis failed');
+    } finally {
+      setIsSynthesizing(false);
+    }
+  };
+
+  const getConsentTemplate = () => {
+    return `I ${config.voiceTalentName || '[your name]'} am aware that recordings of my voice will be used by ${config.companyName} to create and use a synthetic version of my voice.`;
+  };
+
+  return (
+    <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Left Panel - Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 shadow-md">
+          <h1 className="text-3xl font-bold">Voice Creation</h1>
+          <p className="text-emerald-100 mt-1">
+            Create your personal AI voice from audio samples or text prompt
+          </p>
+        </div>
+
+        {/* Main Content - Split into Creation and Test areas */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {!isConfigured ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-gray-500">
+                <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <p className="text-lg">Please configure your Azure API key and region</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Top Half - Voice Creation with Tabs */}
+              <div className="flex-1 min-h-0 border-b border-gray-200 flex flex-col">
+                {/* Tab Navigation */}
+                <div className="flex border-b border-gray-200 bg-gray-50 flex-shrink-0">
+                  <button
+                    onClick={() => setActiveTab('audio')}
+                    className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === 'audio'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                      Audio Based
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('text-prompt')}
+                    className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === 'text-prompt'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Text Prompt
+                    </div>
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="flex-1 min-h-0 p-4 overflow-hidden">
+                  {activeTab === 'audio' ? (
+                    /* Audio Based Voice Creation - Compact Layout */
+                    <div className="h-full flex flex-col gap-3">
+                      {/* Settings Row */}
+                      <div className="flex gap-4 items-end flex-shrink-0">
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Your Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={config.voiceTalentName}
+                            onChange={(e) => setConfig((c) => ({ ...c, voiceTalentName: e.target.value }))}
+                            placeholder="Enter your name"
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                          />
+                        </div>
+                        <div className="w-40">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Language</label>
+                          <select
+                            value={config.locale}
+                            onChange={(e) => setConfig((c) => ({ ...c, locale: e.target.value }))}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                          >
+                            {SUPPORTED_LOCALES.map((loc) => (
+                              <option key={loc.code} value={loc.code}>
+                                {loc.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Two Steps Side by Side */}
+                      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3">
+                        {/* Step 1: Consent */}
+                        <div className={`flex flex-col rounded-lg border p-3 ${currentStep === 'consent' ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
+                          <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${consentAudio ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                              {consentAudio ? '✓' : '1'}
+                            </span>
+                            <h3 className="text-sm font-semibold text-gray-800">Record Consent</h3>
+                          </div>
+
+                          <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs flex-shrink-0">
+                            <p className="text-blue-800 font-medium">Read aloud:</p>
+                            <p className="text-blue-900 italic mt-0.5 line-clamp-2">"{getConsentTemplate()}"</p>
+                          </div>
+
+                          <div className="flex-1 min-h-0">
+                            <AudioRecorder
+                              onRecordingComplete={setConsentAudio}
+                              maxDuration={30}
+                              minDuration={3}
+                              disabled={isCreating}
+                            />
+                          </div>
+
+                          {consentAudio && currentStep === 'consent' && (
+                            <button
+                              onClick={() => setCurrentStep('audio')}
+                              className="mt-2 px-3 py-1.5 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 flex-shrink-0"
+                            >
+                              Next Step →
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Step 2: Voice Sample */}
+                        <div className={`flex flex-col rounded-lg border p-3 ${currentStep === 'audio' ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
+                          <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${voiceAudio ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                              {voiceAudio ? '✓' : '2'}
+                            </span>
+                            <h3 className="text-sm font-semibold text-gray-800">Record Voice Sample</h3>
+                          </div>
+
+                          <p className="text-xs text-gray-600 mb-2 flex-shrink-0">
+                            Record 5-90 seconds. Speak naturally.
+                          </p>
+
+                          <div className="flex-1 min-h-0">
+                            <AudioRecorder
+                              onRecordingComplete={setVoiceAudio}
+                              maxDuration={90}
+                              minDuration={5}
+                              disabled={isCreating || !consentAudio}
+                            />
+                          </div>
+
+                          {voiceAudio && consentAudio && config.voiceTalentName && (
+                            <button
+                              onClick={handleCreateVoice}
+                              disabled={isCreating}
+                              className="mt-2 px-3 py-1.5 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex-shrink-0"
+                            >
+                              {isCreating ? 'Creating...' : 'Create My Voice'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Creation Status */}
+                      {(isCreating || creationStatus) && (
+                        <div className={`p-2 rounded flex-shrink-0 ${creationError ? 'bg-red-50 border border-red-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+                          {creationError ? (
+                            <p className="text-xs text-red-700">{creationError}</p>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              {isCreating && (
+                                <svg className="w-4 h-4 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                              )}
+                              <p className="text-xs text-emerald-700">{creationStatus}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Text Prompt Voice Creation - Compact */
+                    <div className="h-full flex flex-col gap-3">
+                      <div className="flex gap-4 items-end flex-shrink-0">
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Voice Name</label>
+                          <input
+                            type="text"
+                            value={config.voiceTalentName}
+                            onChange={(e) => setConfig((c) => ({ ...c, voiceTalentName: e.target.value }))}
+                            placeholder="My Custom Voice"
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                          />
+                        </div>
+                        <div className="w-40">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Language</label>
+                          <select
+                            value={config.locale}
+                            onChange={(e) => setConfig((c) => ({ ...c, locale: e.target.value }))}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                          >
+                            {SUPPORTED_LOCALES.map((loc) => (
+                              <option key={loc.code} value={loc.code}>
+                                {loc.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-h-0 flex flex-col">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Voice Description <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={voiceDescription}
+                          onChange={(e) => setVoiceDescription(e.target.value)}
+                          placeholder="e.g., A warm, friendly female voice with a slight British accent. Middle-aged, calm and professional tone, suitable for audiobooks and narration."
+                          className="flex-1 min-h-[80px] w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <button
+                          disabled={!voiceDescription.trim() || isCreating}
+                          className="px-4 py-1.5 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+                        >
+                          Generate Voice
+                        </button>
+                        <span className="text-xs text-amber-600">
+                          Requires Azure OpenAI integration (coming soon)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom Half - Test Voice */}
+              <div className="flex-1 min-h-0 p-4 bg-gray-50 flex flex-col">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 flex-1 min-h-0 flex flex-col">
+                  <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                    <h2 className="text-sm font-semibold text-gray-800">Test Voice</h2>
+                    {selectedVoice && (
+                      <span className="text-xs text-gray-500">
+                        Using: <span className="font-medium text-gray-700">{selectedVoice.id}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {selectedVoice ? (
+                    <div className="flex-1 min-h-0 flex flex-col gap-3">
+                      <div className="flex gap-3 items-end flex-shrink-0">
+                        <div className="w-36">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Model</label>
+                          <select
+                            value={testModel}
+                            onChange={(e) => setTestModel(e.target.value as PersonalVoiceModel)}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                          >
+                            {PERSONAL_VOICE_MODELS.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <button
+                          onClick={handleSynthesize}
+                          disabled={isSynthesizing || !testText.trim()}
+                          className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+                        >
+                          {isSynthesizing ? (
+                            <>
+                              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              Synthesizing...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                              Speak
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setShowSsml(!showSsml)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border ${
+                            showSsml
+                              ? 'bg-gray-100 border-gray-400 text-gray-700'
+                              : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                          </svg>
+                          SSML
+                        </button>
+                        {synthesisError && (
+                          <span className="text-xs text-red-600">{synthesisError}</span>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-h-0 flex gap-3">
+                        <div className={`flex-1 min-h-0 ${showSsml ? 'w-1/2' : 'w-full'}`}>
+                          <textarea
+                            value={testText}
+                            onChange={(e) => setTestText(e.target.value)}
+                            placeholder="Enter text to speak..."
+                            className="w-full h-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                          />
+                        </div>
+                        {showSsml && (
+                          <div className="flex-1 min-h-0 w-1/2">
+                            <pre className="w-full h-full px-2 py-1.5 bg-gray-900 text-gray-100 rounded text-xs font-mono overflow-auto whitespace-pre-wrap">
+                              {buildPersonalVoiceSsml(testText, selectedVoice.speakerProfileId, config.locale, testModel)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+
+                      <audio ref={audioRef} className="hidden" />
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                      <div className="text-center">
+                        <svg className="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
+                        <p className="text-sm">Select a voice from the panel to test</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Right Panel - Voice List */}
+      <div className="w-full md:w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 flex flex-col overflow-hidden">
+        {/* Voice List */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">My Voices</h2>
+            <button
+              onClick={loadVoices}
+              disabled={isLoadingVoices || !isConfigured}
+              className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              title="Refresh"
+            >
+              <svg className={`w-5 h-5 ${isLoadingVoices ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
+
+          {voices.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+              <p>No voices created yet</p>
+              <p className="text-sm mt-1">Create your first voice above</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {voices.map((voice) => (
+                <div
+                  key={voice.id}
+                  onClick={() => voice.status === 'Succeeded' && setSelectedVoice(voice)}
+                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                    selectedVoice?.id === voice.id
+                      ? 'border-emerald-500 bg-emerald-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  } ${voice.status !== 'Succeeded' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                      <span className="font-medium text-gray-800 text-sm">{voice.id}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 text-xs rounded-full ${
+                          voice.status === 'Succeeded'
+                            ? 'bg-green-100 text-green-700'
+                            : voice.status === 'Failed'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}
+                      >
+                        {voice.status}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteVoice(voice);
+                        }}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                        title="Delete voice"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
