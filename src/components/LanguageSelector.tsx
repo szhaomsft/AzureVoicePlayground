@@ -1,8 +1,9 @@
 // Language Selector Component
 
 import React, { useState, useMemo } from 'react';
-import { getAllLanguages, searchLanguages, STTLanguage } from '../utils/sttLanguages';
+import { getAllLanguages, searchLanguages, STTLanguage, AUTO_DETECT } from '../utils/sttLanguages';
 import { STTModel } from '../types/stt';
+import { LLM_SPEECH_LANGUAGES } from '../hooks/useLLMSpeech';
 
 interface LanguageSelectorProps {
   selectedLanguage: string;
@@ -10,20 +11,37 @@ interface LanguageSelectorProps {
   selectedModel: STTModel;
 }
 
+// Convert LLM Speech languages to STTLanguage format
+const llmSpeechLanguagesAsSTT: STTLanguage[] = LLM_SPEECH_LANGUAGES.map(lang => ({
+  code: lang.code,
+  name: lang.name,
+  nativeName: lang.nativeName,
+}));
+
 export function LanguageSelector({ selectedLanguage, onLanguageChange, selectedModel }: LanguageSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
-  const modelType = selectedModel === 'fast-transcription' ? 'fast-transcription' : 'realtime';
-
-  const allLanguages = useMemo(() => getAllLanguages(modelType), [modelType]);
+  const allLanguages = useMemo(() => {
+    if (selectedModel === 'llm-speech') {
+      // LLM Speech has its own language list (auto-detect is supported)
+      return [AUTO_DETECT, ...llmSpeechLanguagesAsSTT];
+    }
+    const modelType = selectedModel === 'fast-transcription' ? 'fast-transcription' : 'realtime';
+    return getAllLanguages(modelType);
+  }, [selectedModel]);
 
   const filteredLanguages = useMemo(() => {
     if (!searchQuery.trim()) {
       return allLanguages;
     }
-    return [allLanguages[0], ...searchLanguages(searchQuery, modelType)];
-  }, [searchQuery, allLanguages, modelType]);
+    const query = searchQuery.toLowerCase();
+    return allLanguages.filter(lang =>
+      lang.name.toLowerCase().includes(query) ||
+      lang.nativeName.toLowerCase().includes(query) ||
+      lang.code.toLowerCase().includes(query)
+    );
+  }, [searchQuery, allLanguages]);
 
   const selectedLang = useMemo(() => {
     return allLanguages.find(lang => lang.code === selectedLanguage);

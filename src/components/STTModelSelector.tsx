@@ -3,6 +3,7 @@
 import React from 'react';
 import { STTModel } from '../types/stt';
 import { FAST_TRANSCRIPTION_LANGUAGES, REALTIME_LANGUAGES } from '../utils/sttLanguages';
+import { LLM_SPEECH_LANGUAGES } from '../hooks/useLLMSpeech';
 
 interface STTModelSelectorProps {
   selectedModel: STTModel;
@@ -34,6 +35,14 @@ const MODELS: ModelInfo[] = [
     icon: '🚀',
     useCases: 'Quick audio file transcription',
     features: ['Fast processing', 'Batch transcription', 'Max 25 MB', `${FAST_TRANSCRIPTION_LANGUAGES.length} locales`]
+  },
+  {
+    id: 'llm-speech',
+    name: 'LLM Speech (Preview)',
+    description: 'LLM-enhanced with deep contextual understanding',
+    icon: '🧠',
+    useCases: 'High-accuracy transcription & translation',
+    features: ['LLM-enhanced', 'Prompt tuning', 'Translation', 'Diarization', `${LLM_SPEECH_LANGUAGES.length} languages`]
   },
   // Whisper temporarily hidden - requires Azure Blob Storage for audio URLs
   // {
