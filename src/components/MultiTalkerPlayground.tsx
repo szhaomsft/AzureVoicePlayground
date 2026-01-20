@@ -64,6 +64,10 @@ export function MultiTalkerPlayground({
       region: settings.region,
     });
 
+  // Podcast Generator only works in these regions
+  const SUPPORTED_REGIONS = ['eastus', 'eastus2', 'westeurope', 'southeastasia', 'swedencentral', 'centralindia'];
+  const isRegionSupported = SUPPORTED_REGIONS.includes(settings.region.toLowerCase());
+
   // Load preset when selected
   const handlePresetChange = (presetLocale: string) => {
     setSelectedPreset(presetLocale);
@@ -252,6 +256,37 @@ export function MultiTalkerPlayground({
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col gap-4 p-6 overflow-y-auto">
+          {/* Region Not Supported Message */}
+          {isConfigured && !isRegionSupported && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                  <h3 className="font-semibold text-amber-800">Region Not Supported</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Podcast Generator is currently only available in the following regions:
+                  </p>
+                  <ul className="text-sm text-amber-700 mt-2 list-disc list-inside">
+                    <li><strong>East US</strong> (eastus)</li>
+                    <li><strong>East US 2</strong> (eastus2)</li>
+                    <li><strong>West Europe</strong> (westeurope)</li>
+                    <li><strong>Southeast Asia</strong> (southeastasia)</li>
+                    <li><strong>Sweden Central</strong> (swedencentral)</li>
+                    <li><strong>Central India</strong> (centralindia)</li>
+                  </ul>
+                  <p className="text-sm text-amber-700 mt-2">
+                    Your current region is <strong>{settings.region}</strong>. Please update your region in the sidebar settings.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Only show controls if region is supported */}
+          {(!isConfigured || isRegionSupported) && (
+            <>
           {/* URL to Script Generator */}
           <div className="border border-purple-200 rounded-lg p-4 bg-purple-50">
             <div className="flex items-center justify-between mb-2">
@@ -428,6 +463,8 @@ export function MultiTalkerPlayground({
               onStop={stop}
             />
           </div>
+            </>
+          )}
         </div>
 
         {/* History Panel */}
