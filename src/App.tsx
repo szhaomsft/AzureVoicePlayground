@@ -3,9 +3,11 @@ import { useSettings } from './hooks/useSettings';
 import { useHistoryStorage } from './hooks/useHistoryStorage';
 import { useConversionHistoryStorage } from './hooks/useConversionHistoryStorage';
 import { useMultiTalkerHistoryStorage } from './hooks/useMultiTalkerHistoryStorage';
+import { useSTTHistoryStorage } from './hooks/useSTTHistoryStorage';
 import { PlaygroundMode } from './types/azure';
 import { NavigationSidebar } from './components/NavigationSidebar';
 import { TextToSpeechPlayground } from './components/TextToSpeechPlayground';
+import { SpeechToTextPlayground } from './components/SpeechToTextPlayground';
 import { VoiceChangerPlayground } from './components/VoiceChangerPlayground';
 import { MultiTalkerPlayground } from './components/MultiTalkerPlayground';
 import { VoiceLiveTranslatorPlayground } from './components/VoiceLiveTranslatorPlayground';
@@ -16,6 +18,7 @@ import { VideoTranslationPlayground } from './components/VideoTranslationPlaygro
 // Valid playground modes for URL hash routing
 const VALID_MODES: PlaygroundMode[] = [
   'text-to-speech',
+  'speech-to-text',
   'voice-changer',
   'multi-talker',
   'voice-creation',
@@ -58,6 +61,7 @@ function App() {
   const ttsHistory = useHistoryStorage();
   const conversionHistory = useConversionHistoryStorage();
   const multiTalkerHistory = useMultiTalkerHistoryStorage();
+  const sttHistory = useSTTHistoryStorage();
 
   const renderPlayground = () => {
     switch (activePlayground) {
@@ -71,6 +75,18 @@ function App() {
             addToHistory={ttsHistory.addToHistory}
             removeFromHistory={ttsHistory.removeFromHistory}
             clearHistory={ttsHistory.clearHistory}
+          />
+        );
+      case 'speech-to-text':
+        return (
+          <SpeechToTextPlayground
+            settings={settings}
+            onSettingsChange={updateSettings}
+            isConfigured={isConfigured}
+            history={sttHistory.history}
+            addToHistory={sttHistory.addToHistory}
+            removeFromHistory={sttHistory.removeFromHistory}
+            clearHistory={sttHistory.clearHistory}
           />
         );
       case 'voice-changer':

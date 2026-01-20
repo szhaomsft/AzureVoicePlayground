@@ -1,0 +1,345 @@
+// Speech to Text Playground Component
+
+import React, { useState, useEffect } from 'react';
+import { AzureSettings } from '../types/azure';
+import { STTHistoryEntry, STTModel } from '../types/stt';
+import { useRealtimeSTT } from '../hooks/useRealtimeSTT';
+import { useFastTranscription } from '../hooks/useFastTranscription';
+import { useWhisperTranscription } from '../hooks/useWhisperTranscription';
+import { STTModelSelector } from './STTModelSelector';
+import { LanguageSelector } from './LanguageSelector';
+import { TranscriptDisplay } from './TranscriptDisplay';
+import { ExportTranscript } from './ExportTranscript';
+import { AudioUploader } from './AudioUploader';
+import { AudioRecorder } from './AudioRecorder';
+import { getAudioDuration } from '../utils/audioUtils';
+
+interface SpeechToTextPlaygroundProps {
+  settings: AzureSettings;
+  onSettingsChange: (settings: Partial<AzureSettings>) => void;
+  isConfigured: boolean;
+  history: STTHistoryEntry[];
+  addToHistory: (entry: Omit<STTHistoryEntry, 'id'>) => void;
+  removeFromHistory: (id: string) => void;
+  clearHistory: () => void;
+}
+
+export function SpeechToTextPlayground({
+  settings,
+  onSettingsChange,
+  isConfigured,
+  history,
+  addToHistory,
+  removeFromHistory,
+  clearHistory,
+}: SpeechToTextPlaygroundProps) {
+  const [selectedModel, setSelectedModel] = useState<STTModel>('realtime');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('auto');
+  const [audioSource, setAudioSource] = useState<File | Blob | null>(null);
+  const [audioFileName, setAudioFileName] = useState<string>('');
+  const [isUsingRecorder, setIsUsingRecorder] = useState<boolean>(false);
+
+  // Hooks for each STT model
+  const realtimeSTT = useRealtimeSTT(settings);
+  const fastTranscription = useFastTranscription(settings);
+  const whisperTranscription = useWhisperTranscription(settings);
+
+  // Get the current active hook based on selected model
+  const getCurrentHook = () => {
+    switch (selectedModel) {
+      case 'realtime':
+        return realtimeSTT;
+      case 'fast-transcription':
+        return fastTranscription;
+      case 'whisper':
+        return whisperTranscription;
+    }
+  };
+
+  const currentHook = getCurrentHook();
+
+  // Add to history when transcription completes successfully
+  useEffect(() => {
+    if (currentHook.state === 'completed' && audioSource) {
+      const getTranscriptData = () => {
+        if (selectedModel === 'realtime' && realtimeSTT.transcript) {
+          return {
+            text: realtimeSTT.transcript.text,
+            segments: realtimeSTT.transcript.segments
+          };
+        } else if (selectedModel === 'fast-transcription' && fastTranscription.transcript) {
+          return {
+            text: fastTranscription.transcript.fullText,
+            segments: fastTranscription.transcript.segments
+          };
+        } else if (selectedModel === 'whisper' && whisperTranscription.transcript) {
+          return {
+            text: whisperTranscription.transcript.fullText,
+            segments: whisperTranscription.transcript.segments
+          };
+        }
+        return null;
+      };
+
+      const transcriptData = getTranscriptData();
+      if (transcriptData) {
+        getAudioDuration(audioSource)
+          .then((duration) => {
+            addToHistory({
+              timestamp: Date.now(),
+              model: selectedModel,
+              audioFileName: audioFileName || 'audio',
+              audioSize: audioSource.size,
+              audioDuration: duration,
+              language: selectedLanguage,
+              transcript: transcriptData.text,
+              processingTime: 0, // Could track this if needed
+              segments: transcriptData.segments
+            });
+          })
+          .catch((err) => {
+            console.error('Failed to get audio duration:', err);
+          });
+      }
+    }
+  }, [currentHook.state, selectedModel, audioSource, audioFileName, selectedLanguage, addToHistory]);
+
+  const handleAudioFileChange = (file: File | null) => {
+    setAudioSource(file);
+    setAudioFileName(file?.name || '');
+    setIsUsingRecorder(false);
+    // Reset current transcription
+    currentHook.reset();
+  };
+
+  const handleRecordingComplete = (blob: Blob) => {
+    setAudioSource(blob);
+    setAudioFileName('recording');
+    setIsUsingRecorder(true);
+    // Reset current transcription
+    currentHook.reset();
+  };
+
+  const handleTranscribe = async () => {
+    if (!audioSource) {
+      return;
+    }
+
+    try {
+      if (selectedModel === 'realtime') {
+        await realtimeSTT.startRecognition(audioSource, selectedLanguage);
+      } else if (selectedModel === 'fast-transcription') {
+        await fastTranscription.transcribe(audioSource, selectedLanguage);
+      } else if (selectedModel === 'whisper') {
+        await whisperTranscription.transcribe(audioSource, selectedLanguage);
+      }
+    } catch (err) {
+      console.error('Transcription error:', err);
+    }
+  };
+
+  const handleCancel = () => {
+    if (selectedModel === 'realtime') {
+      realtimeSTT.stopRecognition();
+    } else if (selectedModel === 'whisper') {
+      whisperTranscription.cancelJob();
+    }
+  };
+
+  const isProcessing = currentHook.state === 'processing' || currentHook.state === 'streaming';
+  const hasTranscript = currentHook.state === 'completed';
+
+  // Get transcript data for display
+  const getDisplayData = () => {
+    if (selectedModel === 'realtime' && realtimeSTT.transcript) {
+      return {
+        segments: realtimeSTT.transcript.segments,
+        fullText: realtimeSTT.transcript.text,
+        interimText: realtimeSTT.transcript.interimText,
+        isStreaming: realtimeSTT.transcript.isStreaming
+      };
+    } else if (selectedModel === 'fast-transcription' && fastTranscription.transcript) {
+      return {
+        segments: fastTranscription.transcript.segments,
+        fullText: fastTranscription.transcript.fullText,
+        interimText: undefined,
+        isStreaming: false
+      };
+    } else if (selectedModel === 'whisper' && whisperTranscription.transcript) {
+      return {
+        segments: whisperTranscription.transcript.segments,
+        fullText: whisperTranscription.transcript.fullText,
+        interimText: undefined,
+        isStreaming: false
+      };
+    }
+    return {
+      segments: [],
+      fullText: '',
+      interimText: undefined,
+      isStreaming: false
+    };
+  };
+
+  const displayData = getDisplayData();
+
+  return (
+    <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Left side - Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 shadow-md">
+          <h1 className="text-3xl font-bold">Speech to Text</h1>
+          <p className="text-purple-100 mt-1">
+            Transcribe audio using Azure Speech Recognition APIs
+          </p>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col gap-6 p-6 overflow-y-auto">
+          {/* Model Selection */}
+          <STTModelSelector
+            selectedModel={selectedModel}
+            onModelChange={(model) => {
+              setSelectedModel(model);
+              currentHook.reset();
+            }}
+          />
+
+          {/* Language Selection */}
+          <LanguageSelector
+            selectedLanguage={selectedLanguage}
+            onLanguageChange={setSelectedLanguage}
+          />
+
+          {/* Transcription Button */}
+          <div className="space-y-2">
+            {!isConfigured && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  Please configure your Azure API key and region in the settings to use Speech-to-Text.
+                </p>
+              </div>
+            )}
+
+            {currentHook.error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Transcription Error</p>
+                    <p className="text-sm text-red-700 mt-1">{currentHook.error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedModel === 'whisper' && whisperTranscription.pollingStatus && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">{whisperTranscription.pollingStatus}</p>
+              </div>
+            )}
+
+            <button
+              onClick={isProcessing ? handleCancel : handleTranscribe}
+              disabled={!isConfigured || !audioSource}
+              className={`
+                w-full py-3 px-6 rounded-lg font-semibold text-white transition-all
+                ${isProcessing
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed
+                flex items-center justify-center gap-2
+              `}
+            >
+              {isProcessing ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Cancel</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                  <span>Transcribe Audio</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Transcript Display */}
+          <TranscriptDisplay
+            segments={displayData.segments}
+            fullText={displayData.fullText}
+            interimText={displayData.interimText}
+            isStreaming={displayData.isStreaming}
+          />
+
+          {/* Export Options */}
+          {hasTranscript && (
+            <ExportTranscript
+              segments={displayData.segments}
+              filename={audioFileName || 'transcript'}
+            />
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 border-t border-gray-200 px-6 py-3">
+          <p className="text-xs text-gray-600">
+            Powered by Azure Speech Services - Realtime, Fast Transcription, and Whisper APIs
+          </p>
+        </div>
+      </div>
+
+      {/* Right side - Audio Input */}
+      <div className="w-full md:w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 p-6 flex flex-col gap-6 overflow-y-auto">
+        <h2 className="text-lg font-semibold text-gray-800">Audio Source</h2>
+
+        {/* Audio Uploader */}
+        <div>
+          <AudioUploader
+            onFileChange={handleAudioFileChange}
+            maxSize={selectedModel === 'whisper' ? 10 * 1024 * 1024 : 25 * 1024 * 1024}
+            accept="audio/*"
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gray-50 text-gray-500">or</span>
+          </div>
+        </div>
+
+        {/* Audio Recorder */}
+        <div>
+          <AudioRecorder
+            onRecordingComplete={handleRecordingComplete}
+            allowUpload={false}
+          />
+        </div>
+
+        {/* Info */}
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-sm font-semibold text-blue-900 mb-2">Model Limits</h3>
+          <ul className="text-xs text-blue-800 space-y-1">
+            <li>Realtime: Any size</li>
+            <li>Fast: Up to 25 MB</li>
+            <li>Whisper: Up to 10 MB</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
