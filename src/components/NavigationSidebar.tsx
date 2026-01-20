@@ -94,6 +94,16 @@ const playgroundModes: { mode: PlaygroundMode; label: string; icon: React.ReactN
     ),
   },
   {
+    mode: 'video-translation',
+    label: 'Video Translation',
+    category: 'content',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
     mode: 'voice-live-chat',
     label: 'Voice Live Chat',
     category: 'agent',
@@ -123,9 +133,6 @@ export function NavigationSidebar({
 }: NavigationSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showSecurityNotice, setShowSecurityNotice] = useState(false);
-
-  // All playground modes are now visible
-  const visibleModes = playgroundModes;
 
   // Determine if current mode is a Voice Agent mode (has its own config panel)
   const isAgentMode = activeMode === 'voice-live-chat' || activeMode === 'voice-live-translator';
@@ -166,7 +173,7 @@ export function NavigationSidebar({
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">Content Generation</p>
         )}
         <nav className="space-y-1">
-          {visibleModes.filter(m => m.category === 'content').map(({ mode, label, icon }) => (
+          {playgroundModes.filter(m => m.category === 'content').map(({ mode, label, icon }) => (
             <div key={mode} className="flex items-center gap-1">
               <button
                 onClick={() => onModeChange(mode)}
@@ -207,7 +214,7 @@ export function NavigationSidebar({
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">Voice Agent</p>
         )}
         <nav className="space-y-1">
-          {visibleModes.filter(m => m.category === 'agent').map(({ mode, label, icon }) => (
+          {playgroundModes.filter(m => m.category === 'agent').map(({ mode, label, icon }) => (
             <div key={mode} className="flex items-center gap-1">
               <button
                 onClick={() => onModeChange(mode)}

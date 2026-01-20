@@ -11,6 +11,7 @@ import { MultiTalkerPlayground } from './components/MultiTalkerPlayground';
 import { VoiceLiveTranslatorPlayground } from './components/VoiceLiveTranslatorPlayground';
 import { VoiceLiveChatPlayground } from './components/VoiceLiveChatPlayground';
 import { VoiceCreationPlayground } from './components/VoiceCreationPlayground';
+import { VideoTranslationPlayground } from './components/VideoTranslationPlayground';
 
 // Valid playground modes for URL hash routing
 const VALID_MODES: PlaygroundMode[] = [
@@ -18,6 +19,7 @@ const VALID_MODES: PlaygroundMode[] = [
   'voice-changer',
   'multi-talker',
   'voice-creation',
+  'video-translation',
   'voice-live-chat',
   'voice-live-translator',
 ];
@@ -99,6 +101,13 @@ function App() {
         return (
           <VoiceCreationPlayground
             settings={settings}
+          />
+        );
+      case 'video-translation':
+        return (
+          <VideoTranslationPlayground
+            settings={settings}
+            isConfigured={isConfigured}
           />
         );
       case 'voice-live-chat':
