@@ -58,6 +58,7 @@ export interface VoiceCreationConfig {
   voiceTalentName: string;
   companyName: string;
   locale: string;
+  voiceName: string;
 }
 
 export const DEFAULT_VOICE_CREATION_CONFIG: VoiceCreationConfig = {
@@ -65,6 +66,7 @@ export const DEFAULT_VOICE_CREATION_CONFIG: VoiceCreationConfig = {
   voiceTalentName: '',
   companyName: 'Voice Playground',
   locale: 'en-US',
+  voiceName: '',
 };
 
 export const SUPPORTED_LOCALES = [

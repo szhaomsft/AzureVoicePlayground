@@ -120,8 +120,8 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
 
   // Create voice handler
   const handleCreateVoice = async () => {
-    if (!consentAudio || !voiceAudio || !config.voiceTalentName) {
-      setCreationError('Please complete all steps before creating voice');
+    if (!consentAudio || !voiceAudio || !config.voiceTalentName || !config.voiceName) {
+      setCreationError('Please complete all steps and provide a voice name');
       return;
     }
 
@@ -152,8 +152,8 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
         throw new Error('Consent verification failed. Please ensure the audio clearly states the consent statement.');
       }
 
-      // Step 3: Create personal voice
-      const personalVoiceId = `voice-${Date.now()}`;
+      // Step 3: Create personal voice with user-specified name
+      const personalVoiceId = config.voiceName.trim().replace(/\s+/g, '-').toLowerCase();
       setCreationStatus('Creating personal voice...');
       await createPersonalVoice(clientConfig, {
         projectId: config.projectId,
@@ -260,6 +260,24 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
           </p>
         </div>
 
+        {/* Gating Notice */}
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 flex items-center gap-2 text-sm">
+          <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-amber-800">
+            Audio-based voice creation requires gating approval.{' '}
+            <a
+              href="https://learn.microsoft.com/en-us/azure/ai-services/speech-service/custom-neural-voice"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-700 underline hover:text-amber-900 font-medium"
+            >
+              Learn more and apply for access
+            </a>
+          </span>
+        </div>
+
         {/* Main Content - Split into Creation and Test areas */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {!isConfigured ? (
@@ -318,17 +336,29 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
                       <div className="flex gap-4 items-end flex-shrink-0">
                         <div className="flex-1">
                           <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Voice Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={config.voiceName}
+                            onChange={(e) => setConfig((c) => ({ ...c, voiceName: e.target.value }))}
+                            placeholder="my-custom-voice"
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
                             Your Name <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
                             value={config.voiceTalentName}
                             onChange={(e) => setConfig((c) => ({ ...c, voiceTalentName: e.target.value }))}
-                            placeholder="Enter your name"
+                            placeholder="John Doe"
                             className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                           />
                         </div>
-                        <div className="w-40">
+                        <div className="w-32">
                           <label className="block text-xs font-medium text-gray-700 mb-1">Language</label>
                           <select
                             value={config.locale}
@@ -446,13 +476,23 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
                           <label className="block text-xs font-medium text-gray-700 mb-1">Voice Name</label>
                           <input
                             type="text"
-                            value={config.voiceTalentName}
-                            onChange={(e) => setConfig((c) => ({ ...c, voiceTalentName: e.target.value }))}
-                            placeholder="My Custom Voice"
+                            value={config.voiceName}
+                            onChange={(e) => setConfig((c) => ({ ...c, voiceName: e.target.value }))}
+                            placeholder="my-custom-voice"
                             className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                           />
                         </div>
-                        <div className="w-40">
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Voice Talent Name</label>
+                          <input
+                            type="text"
+                            value={config.voiceTalentName}
+                            onChange={(e) => setConfig((c) => ({ ...c, voiceTalentName: e.target.value }))}
+                            placeholder="John Doe"
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                          />
+                        </div>
+                        <div className="w-32">
                           <label className="block text-xs font-medium text-gray-700 mb-1">Language</label>
                           <select
                             value={config.locale}
@@ -559,6 +599,43 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                           </svg>
                           SSML
+                        </button>
+                        <button
+                          onClick={() => {
+                            const ssml = buildPersonalVoiceSsml(testText, selectedVoice.speakerProfileId, config.locale, testModel);
+                            const emailBody = `
+Voice Name: ${selectedVoice.id}
+Speaker Name: ${config.voiceTalentName}
+Model: ${testModel}
+Language: ${config.locale}
+
+Test Text:
+${testText}
+
+SSML:
+${ssml}
+
+[Please attach the audio file if available]
+                            `.trim();
+                            const subject = encodeURIComponent(`Personal Voice Feedback - ${selectedVoice.id}`);
+                            const body = encodeURIComponent(emailBody);
+                            const mailtoLink = `mailto:ttsvoicefeedback@microsoft.com?subject=${subject}&body=${body}`;
+
+                            // Copy SSML to clipboard
+                            if (navigator.clipboard) {
+                              navigator.clipboard.writeText(ssml);
+                            }
+
+                            window.open(mailtoLink, '_blank');
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border bg-green-600 border-green-600 text-white hover:bg-green-700"
+                          title="Send feedback email"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                          </svg>
+                          Feedback
                         </button>
                         {synthesisError && (
                           <span className="text-xs text-red-600">{synthesisError}</span>
