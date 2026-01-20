@@ -188,8 +188,17 @@ Bonjour, ceci est ma voix personnelle.`);
       }, 3000);
     } catch (error) {
       console.error('Voice creation failed:', error);
-      setCreationError(error instanceof Error ? error.message : 'Voice creation failed');
-      setCurrentStep('consent');
+      let errorMessage = 'Voice creation failed';
+      if (error instanceof Error) {
+        if (error.message.includes('409')) {
+          errorMessage = 'A voice with this name already exists. Please use a different voice name.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      setCreationError(errorMessage);
+      setCreationStatus('');
+      setCurrentStep('audio');
     } finally {
       setIsCreating(false);
     }
@@ -437,24 +446,22 @@ Bonjour, ceci est ma voix personnelle.`);
                               onRecordingComplete={setVoiceAudio}
                               maxDuration={90}
                               minDuration={5}
-                              disabled={isCreating || !consentAudio}
+                              disabled={isCreating}
                             />
                           </div>
 
-                          {voiceAudio && consentAudio && config.voiceTalentName && (
-                            <button
-                              onClick={handleCreateVoice}
-                              disabled={isCreating}
-                              className="mt-2 px-3 py-1.5 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex-shrink-0"
-                            >
-                              {isCreating ? 'Creating...' : 'Create My Voice'}
-                            </button>
-                          )}
+                          <button
+                            onClick={handleCreateVoice}
+                            disabled={isCreating || !voiceAudio || !consentAudio || !config.voiceTalentName.trim() || !config.voiceName.trim()}
+                            className="mt-2 px-3 py-1.5 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex-shrink-0"
+                          >
+                            {isCreating ? 'Creating...' : 'Create My Voice'}
+                          </button>
                         </div>
                       </div>
 
                       {/* Creation Status */}
-                      {(isCreating || creationStatus) && (
+                      {(isCreating || creationStatus || creationError) && (
                         <div className={`p-2 rounded flex-shrink-0 ${creationError ? 'bg-red-50 border border-red-200' : 'bg-emerald-50 border border-emerald-200'}`}>
                           {creationError ? (
                             <p className="text-xs text-red-700">{creationError}</p>
