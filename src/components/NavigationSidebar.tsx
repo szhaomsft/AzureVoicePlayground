@@ -167,19 +167,35 @@ export function NavigationSidebar({
         )}
         <nav className="space-y-1">
           {visibleModes.filter(m => m.category === 'content').map(({ mode, label, icon }) => (
-            <button
-              key={mode}
-              onClick={() => onModeChange(mode)}
-              title={isCollapsed ? label : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                activeMode === mode
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-            >
-              {icon}
-              {!isCollapsed && <span>{label}</span>}
-            </button>
+            <div key={mode} className="flex items-center gap-1">
+              <button
+                onClick={() => onModeChange(mode)}
+                title={isCollapsed ? label : undefined}
+                className={`flex-1 flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  activeMode === mode
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+              >
+                {icon}
+                {!isCollapsed && <span>{label}</span>}
+              </button>
+              {!isCollapsed && (
+                <a
+                  href={`${window.location.origin}${window.location.pathname}#${mode}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onModeChange(mode);
+                  }}
+                  className="p-1.5 rounded text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
+                  title="Right-click to copy link"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </a>
+              )}
+            </div>
           ))}
         </nav>
       </div>
@@ -191,19 +207,35 @@ export function NavigationSidebar({
         )}
         <nav className="space-y-1">
           {visibleModes.filter(m => m.category === 'agent').map(({ mode, label, icon }) => (
-            <button
-              key={mode}
-              onClick={() => onModeChange(mode)}
-              title={isCollapsed ? label : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                activeMode === mode
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-            >
-              {icon}
-              {!isCollapsed && <span>{label}</span>}
-            </button>
+            <div key={mode} className="flex items-center gap-1">
+              <button
+                onClick={() => onModeChange(mode)}
+                title={isCollapsed ? label : undefined}
+                className={`flex-1 flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  activeMode === mode
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+              >
+                {icon}
+                {!isCollapsed && <span>{label}</span>}
+              </button>
+              {!isCollapsed && (
+                <a
+                  href={`${window.location.origin}${window.location.pathname}#${mode}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onModeChange(mode);
+                  }}
+                  className="p-1.5 rounded text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
+                  title="Right-click to copy link"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </a>
+              )}
+            </div>
           ))}
         </nav>
       </div>

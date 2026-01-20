@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { useHistoryStorage } from './hooks/useHistoryStorage';
 import { useConversionHistoryStorage } from './hooks/useConversionHistoryStorage';
@@ -12,6 +12,16 @@ import { VoiceLiveTranslatorPlayground } from './components/VoiceLiveTranslatorP
 import { VoiceLiveChatPlayground } from './components/VoiceLiveChatPlayground';
 import { VoiceCreationPlayground } from './components/VoiceCreationPlayground';
 
+// Valid playground modes for URL hash routing
+const VALID_MODES: PlaygroundMode[] = [
+  'text-to-speech',
+  'voice-changer',
+  'multi-talker',
+  'voice-creation',
+  'voice-live-chat',
+  'voice-live-translator',
+];
+
 // Check for feature flag in URL: ?avatar=1 or ?avatar=true
 function useAvatarFeatureFlag(): boolean {
   return useMemo(() => {
@@ -21,10 +31,36 @@ function useAvatarFeatureFlag(): boolean {
   }, []);
 }
 
+// Get initial playground mode from URL hash
+function getInitialModeFromHash(): PlaygroundMode {
+  const hash = window.location.hash.slice(1); // Remove the '#'
+  if (hash && VALID_MODES.includes(hash as PlaygroundMode)) {
+    return hash as PlaygroundMode;
+  }
+  return 'text-to-speech';
+}
+
 function App() {
   const { settings, updateSettings, isConfigured } = useSettings();
-  const [activePlayground, setActivePlayground] = useState<PlaygroundMode>('text-to-speech');
+  const [activePlayground, setActivePlayground] = useState<PlaygroundMode>(getInitialModeFromHash);
   const showAvatarFeature = useAvatarFeatureFlag();
+
+  // Update URL hash when playground changes
+  useEffect(() => {
+    window.location.hash = activePlayground;
+  }, [activePlayground]);
+
+  // Listen for hash changes (browser back/forward)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (hash && VALID_MODES.includes(hash as PlaygroundMode)) {
+        setActivePlayground(hash as PlaygroundMode);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Lift history state to App level so it persists when switching playgrounds
   const ttsHistory = useHistoryStorage();
