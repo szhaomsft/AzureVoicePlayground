@@ -12,7 +12,13 @@
       "Bash(git push)",
       "Bash(npx tsc:*)",
       "Bash(npx typescript:*)",
-      "Bash(node_modules.bintsc:*)"
+      "Bash(node_modules.bintsc:*)",
+      "Bash(ls:*)",
+      "Bash(npm ls @azure/ai-voicelive)",
+      "Bash(git checkout:*)",
+      "Bash(tar:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

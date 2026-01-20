@@ -17,11 +17,13 @@ export function AudioRecorder({
   const [duration, setDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -130,6 +132,55 @@ export function AudioRecorder({
     setDuration(0);
   }, [audioUrl]);
 
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    setIsProcessingUpload(true);
+
+    try {
+      // Check file type
+      if (!file.type.startsWith('audio/')) {
+        throw new Error('Please upload an audio file (MP3, WAV, etc.)');
+      }
+
+      // Convert to WAV for API compatibility
+      const wavBlob = await convertAudioFileToWav(file);
+
+      // Get duration
+      const audioDuration = await getAudioDuration(wavBlob);
+
+      if (minDuration > 0 && audioDuration < minDuration) {
+        throw new Error(`Audio must be at least ${minDuration} seconds long`);
+      }
+      if (audioDuration > maxDuration) {
+        throw new Error(`Audio must be less than ${maxDuration} seconds long`);
+      }
+
+      setDuration(Math.floor(audioDuration));
+
+      // Create preview URL
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+      const url = URL.createObjectURL(wavBlob);
+      setAudioUrl(url);
+
+      // Call callback
+      onRecordingComplete(wavBlob);
+    } catch (err) {
+      console.error('Error processing audio file:', err);
+      setError(err instanceof Error ? err.message : 'Failed to process audio file');
+    } finally {
+      setIsProcessingUpload(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [audioUrl, maxDuration, minDuration, onRecordingComplete]);
+
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -148,16 +199,37 @@ export function AudioRecorder({
 
       <div className="flex items-center gap-3">
         {!isRecording ? (
-          <button
-            onClick={startRecording}
-            disabled={disabled}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="6" />
-            </svg>
-            Start Recording
-          </button>
+          <>
+            <button
+              onClick={startRecording}
+              disabled={disabled || isProcessingUpload}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="6" />
+              </svg>
+              Record
+            </button>
+            <span className="text-gray-400 text-sm">or</span>
+            <label
+              className={`flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${
+                disabled || isProcessingUpload ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              {isProcessingUpload ? 'Processing...' : 'Upload'}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                onChange={handleFileUpload}
+                disabled={disabled || isProcessingUpload}
+                className="hidden"
+              />
+            </label>
+          </>
         ) : (
           <button
             onClick={stopRecording}
@@ -271,4 +343,40 @@ function writeString(view: DataView, offset: number, string: string): void {
   for (let i = 0; i < string.length; i++) {
     view.setUint8(offset + i, string.charCodeAt(i));
   }
+}
+
+// Helper function to convert any audio file to WAV
+async function convertAudioFileToWav(file: File): Promise<Blob> {
+  const audioContext = new AudioContext({ sampleRate: 16000 });
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    // Get audio data
+    const channelData = audioBuffer.getChannelData(0);
+    const sampleRate = audioBuffer.sampleRate;
+
+    // Create WAV file
+    const wavBuffer = encodeWav(channelData, sampleRate);
+    return new Blob([wavBuffer], { type: 'audio/wav' });
+  } finally {
+    await audioContext.close();
+  }
+}
+
+// Helper function to get audio duration
+function getAudioDuration(blob: Blob): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    audio.onloadedmetadata = () => {
+      resolve(audio.duration);
+      URL.revokeObjectURL(audio.src);
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(audio.src);
+      reject(new Error('Failed to load audio'));
+    };
+    audio.src = URL.createObjectURL(blob);
+  });
 }
