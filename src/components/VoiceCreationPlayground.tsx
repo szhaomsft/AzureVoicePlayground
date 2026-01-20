@@ -167,7 +167,7 @@ Bonjour, ceci est ma voix personnelle.`);
       setCreationStatus('Training voice model...');
       const voice = await waitForPersonalVoiceReady(clientConfig, personalVoiceId);
       if (voice.status === 'Failed') {
-        throw new Error('Voice creation failed. Please try with a different audio sample.');
+        throw new Error('Voice creation failed. Please try with a different audio sample. Ensure it is the same person as the consent audio.');
       }
 
       setCreationStatus('Voice created successfully!');
