@@ -133,7 +133,7 @@ export function NavigationSidebar({
   return (
     <div
       className={`h-full bg-gray-900 text-white flex flex-col flex-shrink-0 transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-56'
+        isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Logo / Title with Toggle */}
