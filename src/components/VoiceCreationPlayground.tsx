@@ -542,7 +542,7 @@ Bonjour, ceci est ma voix personnelle.`);
                           Generate Voice
                         </button>
                         <span className="text-xs text-amber-600">
-                          Requires Azure OpenAI integration (coming soon)
+                          This feature is in development (coming soon)
                         </span>
                       </div>
                     </div>
