@@ -16,10 +16,9 @@ import { ChatAudioHandler } from '../lib/voiceLive/audio/chatAudioHandler';
 interface VoiceLiveChatPlaygroundProps {
   endpoint: string;
   apiKey: string;
-  showAvatarFeature?: boolean;
 }
 
-export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = false }: VoiceLiveChatPlaygroundProps) {
+export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlaygroundProps) {
   const [config, setConfig] = useState<VoiceLiveChatConfig>(() => {
     const raw = localStorage.getItem('voicelive.chat.config');
     if (!raw) return { ...DEFAULT_CHAT_CONFIG };
@@ -40,31 +39,29 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
   const [statusText, setStatusText] = useState('');
   const [textInput, setTextInput] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [avatarStream, setAvatarStream] = useState<MediaStream | null>(null);
 
   const chatClientRef = useRef<VoiceLiveChatClient | null>(null);
   const audioHandlerRef = useRef<ChatAudioHandler | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const circleRef = useRef<HTMLDivElement | null>(null);
-  const videoContainerRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const handleAvatarTrack = useCallback((event: RTCTrackEvent) => {
-    console.log('[Playground] Received avatar track:', event.track.kind);
-    if (!videoContainerRef.current) return;
-
-    // Clear existing video elements
-    videoContainerRef.current.innerHTML = '';
-
-    const mediaPlayer = document.createElement(event.track.kind === 'video' ? 'video' : 'audio') as HTMLVideoElement | HTMLAudioElement;
-    mediaPlayer.srcObject = event.streams[0];
-    mediaPlayer.autoplay = true;
-    if (event.track.kind === 'video') {
-      (mediaPlayer as HTMLVideoElement).playsInline = true;
-      mediaPlayer.style.width = '100%';
-      mediaPlayer.style.height = '100%';
-      mediaPlayer.style.objectFit = 'cover';
+    console.log('[Playground] Received avatar track:', event.track.kind, 'streams:', event.streams.length);
+    if (event.track.kind === 'video' && event.streams[0]) {
+      console.log('[Playground] Setting avatar video stream');
+      setAvatarStream(event.streams[0]);
     }
-    videoContainerRef.current.appendChild(mediaPlayer);
   }, []);
+
+  // Set video srcObject when stream changes
+  useEffect(() => {
+    if (videoRef.current && avatarStream) {
+      console.log('[Playground] Attaching stream to video element');
+      videoRef.current.srcObject = avatarStream;
+    }
+  }, [avatarStream]);
 
   // Initialize chat client
   if (!chatClientRef.current) {
@@ -169,6 +166,7 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
     try {
       await stopRecording();
       await chatClient.disconnect();
+      setAvatarStream(null);
       setStatusText('Disconnected');
     } catch (e) {
       setStatusText(e instanceof Error ? e.message : String(e));
@@ -278,7 +276,7 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
         </div>
 
         {/* Audio visualization circle - fixed at top, doesn't scroll */}
-        {!(showAvatarFeature && config.avatar.enabled) && (
+        {!config.avatar.enabled && (
           <div className="flex-shrink-0 flex flex-col items-center py-4 bg-white border-b border-gray-100">
             <div
               ref={circleRef}
@@ -318,14 +316,21 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
         )}
 
         {/* Avatar Video Display - fixed at top when avatar is enabled */}
-        {showAvatarFeature && config.avatar.enabled && (
+        {config.avatar.enabled && (
           <div className="flex-shrink-0 flex flex-col items-center py-4 bg-white border-b border-gray-100">
             <div
-              ref={videoContainerRef}
               className="rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center"
               style={{ width: '400px', height: '400px' }}
             >
-              {!isAvatarConnected && (
+              {avatarStream ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted={false}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
                 <div className="text-gray-400 text-center">
                   <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -464,46 +469,45 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
             </select>
           </div>
 
-          {/* Avatar Settings - only shown when feature flag is enabled */}
-          {showAvatarFeature && (
-            <div className="border-t border-gray-200 pt-4">
-              <label className="flex items-center gap-2 mb-3">
-                <input
-                  type="checkbox"
-                  checked={config.avatar.enabled}
-                  onChange={(e) =>
-                    setConfig((c) => ({
-                      ...c,
-                      avatar: { ...c.avatar, enabled: e.target.checked },
-                    }))
-                  }
-                  disabled={isConnected}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Enable Avatar</span>
-              </label>
+          {/* Avatar Settings */}
+          <div className="border-t border-gray-200 pt-4">
+            <label className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                checked={config.avatar.enabled}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    avatar: { ...c.avatar, enabled: e.target.checked },
+                  }))
+                }
+                disabled={isConnected}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Enable Avatar</span>
+            </label>
 
-              {config.avatar.enabled && (
-                <div className="space-y-3 pl-1">
-                  {/* Avatar Type */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Avatar Type</label>
-                    <select
-                      value={config.avatar.type}
-                      onChange={(e) =>
-                        setConfig((c) => ({
-                          ...c,
-                          avatar: {
-                            ...c.avatar,
-                            type: e.target.value as AvatarType,
-                            character: e.target.value === 'photo' ? PHOTO_AVATARS[0].id : VIDEO_AVATARS[0].character,
-                            style: e.target.value === 'video' ? VIDEO_AVATARS[0].style : undefined,
-                          },
-                        }))
-                      }
-                      disabled={isConnected}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                    >
+            {config.avatar.enabled && (
+              <div className="space-y-3 pl-1">
+                {/* Avatar Type */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Avatar Type</label>
+                  <select
+                    value={config.avatar.type}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        avatar: {
+                          ...c.avatar,
+                          type: e.target.value as AvatarType,
+                          character: e.target.value === 'photo' ? PHOTO_AVATARS[0].id : VIDEO_AVATARS[0].character,
+                          style: e.target.value === 'video' ? VIDEO_AVATARS[0].style : undefined,
+                        },
+                      }))
+                    }
+                    disabled={isConnected}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                  >
                       <option value="video">Video Avatar</option>
                       <option value="photo">Photo Avatar (VASA-1)</option>
                     </select>
@@ -554,8 +558,7 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey, showAvatarFeature = 
                   </div>
                 </div>
               )}
-            </div>
-          )}
+          </div>
 
           {/* Connect/Disconnect Button */}
           <div className="pt-2">

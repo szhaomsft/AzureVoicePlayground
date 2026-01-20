@@ -47,6 +47,7 @@ export class VoiceLiveChatClient {
   private readonly pcmPlayer = new Pcm16Player();
   private peerConnection?: RTCPeerConnection;
   private avatarConfig?: AvatarConfig;
+  private pendingIceServers?: RTCIceServer[];
 
   private state: ChatState = {
     isConnected: false,
@@ -179,19 +180,25 @@ export class VoiceLiveChatClient {
     };
   }
 
-  private async setupPeerConnection(serverSdp: string): Promise<void> {
-    console.log('[VoiceLive Chat] Setting up WebRTC peer connection');
-    this.peerConnection = new RTCPeerConnection();
+  private async initPeerConnectionWithIceServers(iceServers: RTCIceServer[]): Promise<void> {
+    console.log('[VoiceLive Chat] initPeerConnectionWithIceServers called');
+    console.log('[VoiceLive Chat] ICE servers count:', iceServers.length);
+
+    // Create peer connection with ICE servers from server
+    this.peerConnection = new RTCPeerConnection({ iceServers });
+    console.log('[VoiceLive Chat] RTCPeerConnection created');
+
+    // Clean up any existing video elements will be handled by onAvatarTrack callback
 
     this.peerConnection.ontrack = (event: RTCTrackEvent) => {
-      console.log('[VoiceLive Chat] Received track:', event.track.kind);
+      console.log('[VoiceLive Chat] ontrack event - track kind:', event.track.kind, 'streams:', event.streams.length);
       if (this.events.onAvatarTrack) {
         this.events.onAvatarTrack(event);
       }
     };
 
     this.peerConnection.oniceconnectionstatechange = () => {
-      console.log('[VoiceLive Chat] ICE state:', this.peerConnection?.iceConnectionState);
+      console.log('[VoiceLive Chat] ICE connection state:', this.peerConnection?.iceConnectionState);
       if (this.peerConnection?.iceConnectionState === 'connected') {
         this.setState({ isAvatarConnected: true, statusText: 'Avatar connected' });
       } else if (
@@ -202,33 +209,94 @@ export class VoiceLiveChatClient {
       }
     };
 
-    this.peerConnection.addTransceiver('video', { direction: 'recvonly' });
-    this.peerConnection.addTransceiver('audio', { direction: 'recvonly' });
+    this.peerConnection.onconnectionstatechange = () => {
+      console.log('[VoiceLive Chat] Connection state:', this.peerConnection?.connectionState);
+    };
 
-    await this.peerConnection.setRemoteDescription({ type: 'offer', sdp: serverSdp });
-    const answer = await this.peerConnection.createAnswer();
-    await this.peerConnection.setLocalDescription(answer);
+    this.peerConnection.onsignalingstatechange = () => {
+      console.log('[VoiceLive Chat] Signaling state:', this.peerConnection?.signalingState);
+    };
 
+    // Use sendrecv direction as required by the avatar service
+    this.peerConnection.addTransceiver('video', { direction: 'sendrecv' });
+    this.peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
+    console.log('[VoiceLive Chat] Transceivers added');
+
+    // Create data channel for events
+    this.peerConnection.createDataChannel('eventChannel');
+    console.log('[VoiceLive Chat] Data channel created');
+
+    this.peerConnection.addEventListener('datachannel', (event) => {
+      const dataChannel = event.channel;
+      console.log('[VoiceLive Chat] Data channel received:', dataChannel.label);
+      dataChannel.onmessage = (e) => {
+        console.log('[VoiceLive Chat] WebRTC data channel message:', e.data);
+      };
+      dataChannel.onclose = () => {
+        console.log('[VoiceLive Chat] Data channel closed');
+      };
+    });
+
+    // Create offer
+    console.log('[VoiceLive Chat] Creating offer...');
+    const offer = await this.peerConnection.createOffer();
+    console.log('[VoiceLive Chat] Offer created, type:', offer.type);
+    await this.peerConnection.setLocalDescription(offer);
+    console.log('[VoiceLive Chat] Local description set');
+
+    // Wait for ICE gathering to complete (with timeout)
+    console.log('[VoiceLive Chat] Waiting for ICE gathering...');
     await new Promise<void>((resolve) => {
       if (this.peerConnection?.iceGatheringState === 'complete') {
+        console.log('[VoiceLive Chat] ICE gathering already complete');
         resolve();
       } else {
         this.peerConnection!.onicegatheringstatechange = () => {
+          console.log('[VoiceLive Chat] ICE gathering state:', this.peerConnection?.iceGatheringState);
           if (this.peerConnection?.iceGatheringState === 'complete') resolve();
         };
-        setTimeout(resolve, 5000);
+        // Timeout after 2 seconds as in reference implementation
+        setTimeout(() => {
+          console.log('[VoiceLive Chat] ICE gathering timeout (2s)');
+          resolve();
+        }, 2000);
       }
     });
 
-    const clientSdp = this.peerConnection.localDescription?.sdp;
-    if (clientSdp && this.session) {
-      console.log('[VoiceLive Chat] Sending client SDP');
+    // Send client SDP to server (base64 encoded JSON as expected by service)
+    const localDescription = this.peerConnection.localDescription;
+    console.log('[VoiceLive Chat] Local description:', localDescription?.type, 'SDP length:', localDescription?.sdp?.length);
+    if (localDescription && this.session) {
+      const clientSdp = btoa(JSON.stringify(localDescription));
+      console.log('[VoiceLive Chat] Sending client SDP (base64 encoded), length:', clientSdp.length);
       const avatarConnectEvent: ClientEventSessionAvatarConnect = {
         type: 'session.avatar.connect',
         clientSdp,
       };
       await this.session.sendEvent(avatarConnectEvent);
       console.log('[VoiceLive Chat] Client SDP sent successfully');
+    } else {
+      console.error('[VoiceLive Chat] Cannot send SDP - no local description or session');
+    }
+  }
+
+  private async handleServerSdpAnswer(serverSdp: string): Promise<void> {
+    if (!this.peerConnection) {
+      console.error('[VoiceLive Chat] No peer connection when receiving server SDP');
+      return;
+    }
+
+    try {
+      // Server sends base64-encoded JSON of the SDP
+      const sdpAnswer = new RTCSessionDescription(
+        JSON.parse(atob(serverSdp)) as RTCSessionDescriptionInit
+      );
+      console.log('[VoiceLive Chat] Setting remote description (answer)');
+      await this.peerConnection.setRemoteDescription(sdpAnswer);
+      console.log('[VoiceLive Chat] Remote description set successfully');
+    } catch (error) {
+      console.error('[VoiceLive Chat] Failed to set remote description:', error);
+      throw error;
     }
   }
 
@@ -261,11 +329,11 @@ export class VoiceLiveChatClient {
     const sessionConfig = this.buildSessionConfig(config);
     console.log('[VoiceLive Chat] Session config:', JSON.stringify(sessionConfig, null, 2));
 
-    // Pass full session config to createSession - this sets initial config before connecting
-    // This is important for avatar because voice cannot be updated after avatar is configured
-    this.session = this.client.createSession(sessionConfig, { connectionTimeoutInMs: 30000 });
+    // Create session without connecting first so we can subscribe to handlers
+    this.session = this.client.createSession(config.model, { connectionTimeoutInMs: 30000 });
+    console.log('[VoiceLive Chat] Session created, subscribing to handlers...');
 
-    // Subscribe to handlers BEFORE connecting so we don't miss events
+    // Subscribe to handlers BEFORE connecting so we don't miss any events
     const handlers: VoiceLiveSessionHandlers = {
       onConnected: async (_args, ctx) => {
         console.log('[VoiceLive Chat] Connected', { sessionId: ctx.sessionId });
@@ -281,25 +349,49 @@ export class VoiceLiveChatClient {
         this.addMessage('error', event.error.message);
       },
       onSessionCreated: async (event: ServerEventSessionCreated) => {
-        console.log('[VoiceLive Chat] Session created', event.session);
+        console.log('[VoiceLive Chat] Session created', JSON.stringify(event.session, null, 2));
         if (event.session.avatar) {
-          console.log('[VoiceLive Chat] Avatar in created session:', event.session.avatar);
+          console.log('[VoiceLive Chat] Avatar in created session:', JSON.stringify(event.session.avatar, null, 2));
         }
       },
       onSessionUpdated: async (event: ServerEventSessionUpdated) => {
-        console.log('[VoiceLive Chat] Session updated', event.session);
-        // Check if avatar is configured in the session
+        console.log('[VoiceLive Chat] Session updated', JSON.stringify(event.session, null, 2));
+        // Check if avatar is configured with ICE servers
         if (event.session.avatar) {
-          console.log('[VoiceLive Chat] Avatar configured in session:', event.session.avatar);
+          console.log('[VoiceLive Chat] Avatar configured in session:', JSON.stringify(event.session.avatar, null, 2));
+          const iceServers = (event.session.avatar as any).iceServers;
+          console.log('[VoiceLive Chat] ICE servers from avatar:', iceServers);
+          if (iceServers && Array.isArray(iceServers)) {
+            console.log('[VoiceLive Chat] Received ICE servers:', JSON.stringify(iceServers, null, 2));
+            // Validate ICE servers format
+            if (iceServers.every((server: any) => typeof server === 'object' && server.urls)) {
+              console.log('[VoiceLive Chat] ICE servers valid, initializing peer connection...');
+              try {
+                await this.initPeerConnectionWithIceServers(iceServers as RTCIceServer[]);
+                console.log('[VoiceLive Chat] Peer connection initialized successfully');
+              } catch (error) {
+                console.error('[VoiceLive Chat] Failed to init peer connection:', error);
+                this.addMessage('error', `Avatar setup failed: ${error}`);
+              }
+            } else {
+              console.error('[VoiceLive Chat] Invalid ICE servers format:', iceServers);
+            }
+          } else {
+            console.log('[VoiceLive Chat] No ICE servers in avatar config yet');
+          }
+        } else {
+          console.log('[VoiceLive Chat] No avatar in session update');
         }
       },
       onSessionAvatarConnecting: async (event: ServerEventSessionAvatarConnecting) => {
-        console.log('[VoiceLive Chat] Avatar connecting, received server SDP');
+        console.log('[VoiceLive Chat] Avatar connecting event received');
         console.log('[VoiceLive Chat] Server SDP length:', event.serverSdp?.length);
+        console.log('[VoiceLive Chat] Server SDP preview:', event.serverSdp?.substring(0, 100));
         try {
-          await this.setupPeerConnection(event.serverSdp);
+          await this.handleServerSdpAnswer(event.serverSdp);
+          console.log('[VoiceLive Chat] Server SDP handled successfully');
         } catch (error) {
-          console.error('[VoiceLive Chat] Failed to setup avatar:', error);
+          console.error('[VoiceLive Chat] Failed to handle server SDP:', error);
           this.addMessage('error', `Avatar connection failed: ${error}`);
         }
       },
@@ -380,16 +472,14 @@ export class VoiceLiveChatClient {
     this.subscription = this.session.subscribe(handlers);
     console.log('[VoiceLive Chat] Handlers subscribed, connecting...');
 
-    // Connect first, then send session config (this is how startSession works internally)
+    // Now connect and send session configuration
     try {
       await this.session.connect();
       console.log('[VoiceLive Chat] WebSocket connected, sending session config...');
-
-      // Send session configuration - this triggers avatar.connecting event if avatar is enabled
       await this.session.updateSession(sessionConfig);
       console.log('[VoiceLive Chat] Session config sent successfully');
     } catch (error) {
-      console.error('[VoiceLive Chat] Failed to connect or configure:', error);
+      console.error('[VoiceLive Chat] Failed to connect or update session:', error);
       throw error;
     }
 

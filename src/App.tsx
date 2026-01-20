@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettings } from './hooks/useSettings';
 import { useHistoryStorage } from './hooks/useHistoryStorage';
 import { useConversionHistoryStorage } from './hooks/useConversionHistoryStorage';
@@ -22,15 +22,6 @@ const VALID_MODES: PlaygroundMode[] = [
   'voice-live-translator',
 ];
 
-// Check for feature flag in URL: ?avatar=1 or ?avatar=true
-function useAvatarFeatureFlag(): boolean {
-  return useMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    const avatarParam = params.get('avatar');
-    return avatarParam === '1' || avatarParam === 'true';
-  }, []);
-}
-
 // Get initial playground mode from URL hash
 function getInitialModeFromHash(): PlaygroundMode {
   const hash = window.location.hash.slice(1); // Remove the '#'
@@ -43,7 +34,6 @@ function getInitialModeFromHash(): PlaygroundMode {
 function App() {
   const { settings, updateSettings, isConfigured } = useSettings();
   const [activePlayground, setActivePlayground] = useState<PlaygroundMode>(getInitialModeFromHash);
-  const showAvatarFeature = useAvatarFeatureFlag();
 
   // Update URL hash when playground changes
   useEffect(() => {
@@ -116,7 +106,6 @@ function App() {
           <VoiceLiveChatPlayground
             endpoint={settings.voiceLiveEndpoint || ''}
             apiKey={settings.voiceLiveApiKey || ''}
-            showAvatarFeature={showAvatarFeature}
           />
         );
       case 'voice-live-translator':
