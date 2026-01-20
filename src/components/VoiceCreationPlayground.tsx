@@ -279,8 +279,8 @@ Bonjour, ceci est ma voix personnelle.`);
             </div>
           ) : (
             <>
-              {/* Top Section - Voice Creation with Tabs (takes 2/3) */}
-              <div className="flex-[2] min-h-0 border-b border-gray-200 flex flex-col">
+              {/* Top Section - Voice Creation with Tabs */}
+              <div className="flex-[3] min-h-0 border-b border-gray-200 flex flex-col">
                 {/* Tab Navigation */}
                 <div className="flex border-b border-gray-200 bg-gray-50 flex-shrink-0">
                   <button
@@ -380,7 +380,7 @@ Bonjour, ceci est ma voix personnelle.`);
                       </div>
 
                       {/* Two Recording Sections Side by Side */}
-                      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 overflow-auto">
+                      <div className="flex-1 min-h-0 max-h-[250px] grid grid-cols-2 gap-3 overflow-auto">
                         {/* Consent Recording */}
                         <div className="flex flex-col rounded-lg border border-gray-200 bg-white p-3">
                           <div className="flex items-center gap-2 mb-2 flex-shrink-0">
@@ -517,8 +517,8 @@ Bonjour, ceci est ma voix personnelle.`);
                 </div>
               </div>
 
-              {/* Bottom Section - Test Voice (takes 1/3) */}
-              <div className="flex-1 min-h-0 p-4 bg-gray-50 flex flex-col">
+              {/* Bottom Section - Test Voice */}
+              <div className="flex-[2] min-h-0 p-4 bg-gray-50 flex flex-col">
                 <div className="bg-white rounded-lg border border-gray-200 p-4 flex-1 min-h-0 flex flex-col">
                   <div className="flex items-center justify-between mb-3 flex-shrink-0">
                     <h2 className="text-sm font-semibold text-gray-800">Test Voice</h2>
