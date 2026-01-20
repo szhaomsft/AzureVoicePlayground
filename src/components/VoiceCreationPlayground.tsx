@@ -68,7 +68,12 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
   const [selectedVoice, setSelectedVoice] = useState<PersonalVoice | null>(null);
 
   // TTS testing
-  const [testText, setTestText] = useState('Hello, this is my personal voice speaking.');
+  const [testText, setTestText] = useState(`Hello, this is my personal voice speaking.
+I can speak different languages.
+你好，这是我的个人语音。
+こんにちは、これは私の個人音声です。
+Hola, esta es mi voz personal.
+Bonjour, ceci est ma voix personnelle.`);
   const [testModel, setTestModel] = useState<PersonalVoiceModel>('DragonLatestNeural');
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [synthesisError, setSynthesisError] = useState<string | null>(null);

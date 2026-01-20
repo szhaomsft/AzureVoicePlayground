@@ -315,7 +315,7 @@ export function buildPersonalVoiceSsml(
   <voice name='${model}'>
     <mstts:ttsembedding speakerProfileId='${speakerProfileId}'/>
     <mstts:express-as style='Prompt'>
-      <lang xml:lang='${locale}'>${text}</lang>
+      ${text}
     </mstts:express-as>
   </voice>
 </speak>`;
