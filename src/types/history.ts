@@ -6,4 +6,5 @@ export interface HistoryEntry {
   region: string;          // Azure region
   audioData: ArrayBuffer;  // MP3 audio data
   duration: number;        // Audio duration in seconds
+  model?: string;          // Model used for personal voice (e.g., DragonLatestNeural, PhoenixLatestNeural)
 }

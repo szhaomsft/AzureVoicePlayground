@@ -1,9 +1,17 @@
 import * as SpeechSDK from 'microsoft-cognitiveservices-speech-sdk';
+import { PersonalVoiceModel } from './personalVoice';
 
 export interface AzureSettings {
   apiKey: string;
   region: string;
   selectedVoice: string;
+  // Personal voice info
+  personalVoiceInfo?: {
+    isPersonalVoice: boolean;
+    speakerProfileId?: string;
+    locale?: string;
+    model?: PersonalVoiceModel;
+  };
   // Voice Live settings
   voiceLiveEndpoint?: string;
   voiceLiveApiKey?: string;

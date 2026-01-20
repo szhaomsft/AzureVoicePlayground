@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { VoiceInfo } from '../types/azure';
 import { fetchVoiceList } from '../utils/voiceList';
+import { listPersonalVoices, type PersonalVoiceClientConfig } from '../lib/personalVoice/personalVoiceClient';
+import { PersonalVoice } from '../types/personalVoice';
+
+export interface SelectedVoiceInfo {
+  voiceName: string;
+  isPersonalVoice: boolean;
+  speakerProfileId?: string;
+  locale?: string;
+}
 
 interface VoiceSelectorProps {
   apiKey: string;
   region: string;
   selectedVoice: string;
   onVoiceChange: (voice: string) => void;
+  onVoiceInfoChange?: (info: SelectedVoiceInfo) => void;
 }
 
 export function VoiceSelector({
@@ -14,8 +24,10 @@ export function VoiceSelector({
   region,
   selectedVoice,
   onVoiceChange,
+  onVoiceInfoChange,
 }: VoiceSelectorProps) {
   const [voices, setVoices] = useState<VoiceInfo[]>([]);
+  const [personalVoices, setPersonalVoices] = useState<PersonalVoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,7 +61,31 @@ export function VoiceSelector({
     }
   }, [apiKey, region]);
 
-  const filteredVoices = voices.filter((voice) => {
+  // Fetch personal voices when MyVoices filter is selected
+  useEffect(() => {
+    if (filterPreset === 'MyVoices' && apiKey && region) {
+      setLoading(true);
+      const clientConfig: PersonalVoiceClientConfig = { apiKey, region };
+      listPersonalVoices(clientConfig)
+        .then((voices) => {
+          // Only include succeeded voices
+          const readyVoices = voices.filter(v => v.status === 'Succeeded');
+          setPersonalVoices(readyVoices);
+          console.log(`Found ${readyVoices.length} personal voices:`, readyVoices.map(v => v.id));
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch personal voices:', err);
+          setPersonalVoices([]);
+          setLoading(false);
+        });
+    }
+  }, [filterPreset, apiKey, region]);
+
+  // For MyVoices filter, we use personalVoices instead of regular voices
+  const isMyVoicesFilter = filterPreset === 'MyVoices';
+
+  const filteredVoices = isMyVoicesFilter ? [] : voices.filter((voice) => {
     // Exclude multi-talker voices (they belong in Podcast Generator)
     if (voice.name.toLowerCase().includes('multitalker')) return false;
 
@@ -181,6 +217,16 @@ export function VoiceSelector({
         >
           Non-HD
         </button>
+        <button
+          onClick={() => setFilterPreset(filterPreset === 'MyVoices' ? '' : 'MyVoices')}
+          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            filterPreset === 'MyVoices'
+              ? 'bg-emerald-600 text-white'
+              : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+          }`}
+        >
+          My Voices
+        </button>
       </div>
 
       <input
@@ -208,11 +254,12 @@ export function VoiceSelector({
           <div className="p-4 text-center text-gray-500 text-sm">Loading voices...</div>
         )}
 
-        {!loading && filteredVoices.length === 0 && (
+        {/* Regular voices */}
+        {!loading && !isMyVoicesFilter && filteredVoices.length === 0 && (
           <div className="p-4 text-center text-gray-500 text-sm">No voices found</div>
         )}
 
-        {!loading &&
+        {!loading && !isMyVoicesFilter &&
           filteredVoices.map((voice) => {
             // Combine ContentCategories and VoicePersonalities from VoiceTag
             const tags: string[] = [];
@@ -229,23 +276,12 @@ export function VoiceSelector({
                 key={voice.name}
                 onClick={() => {
                   console.log('Voice changed to:', voice.name);
-                  console.log('=== VOICE ATTRIBUTES ===');
-                  console.log('Full Voice Object:', voice);
-                  console.table({
-                    name: voice.name,
-                    locale: voice.locale,
-                    gender: voice.gender,
-                    description: voice.description,
-                    voiceType: voice.voiceType,
-                    isNeuralHD: voice.isNeuralHD,
-                    isFeatured: voice.isFeatured,
-                    wordsPer: voice.wordsPer,
-                  });
-                  console.log('Style List:', voice.styleList);
-                  console.log('Keywords:', voice.keywords);
-                  console.log('Voice Tag:', voice.voiceTag);
-                  console.log('========================');
                   onVoiceChange(voice.name);
+                  onVoiceInfoChange?.({
+                    voiceName: voice.name,
+                    isPersonalVoice: false,
+                    locale: voice.locale,
+                  });
                 }}
                 className={`w-full px-4 py-3 text-left border-b border-gray-100 last:border-b-0 transition-colors ${
                   selectedVoice === voice.name
@@ -263,11 +299,52 @@ export function VoiceSelector({
               </button>
             );
           })}
+
+        {/* Personal voices */}
+        {!loading && isMyVoicesFilter && personalVoices.length === 0 && (
+          <div className="p-4 text-center text-gray-500 text-sm">
+            <p>No personal voices found</p>
+            <p className="text-xs mt-1">Create voices in Voice Creation playground</p>
+          </div>
+        )}
+
+        {!loading && isMyVoicesFilter &&
+          personalVoices.map((voice) => (
+            <button
+              key={voice.id}
+              onClick={() => {
+                console.log('Personal voice selected:', voice.id, 'speakerProfileId:', voice.speakerProfileId);
+                // Use a special identifier for personal voices
+                const voiceIdentifier = `personal:${voice.id}`;
+                onVoiceChange(voiceIdentifier);
+                onVoiceInfoChange?.({
+                  voiceName: voice.id,
+                  isPersonalVoice: true,
+                  speakerProfileId: voice.speakerProfileId,
+                });
+              }}
+              className={`w-full px-4 py-3 text-left border-b border-gray-100 last:border-b-0 transition-colors ${
+                selectedVoice === `personal:${voice.id}`
+                  ? 'bg-emerald-50 border-l-4 border-l-emerald-600'
+                  : 'hover:bg-gray-50'
+              }`}
+            >
+              <div className="font-medium text-gray-800 text-sm flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {voice.id}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">Personal Voice</div>
+            </button>
+          ))}
       </div>
 
       <div className="text-xs text-gray-500 flex-shrink-0 pt-2">
-        {filteredVoices.length} voice{filteredVoices.length !== 1 ? 's' : ''} available
-        {searchTerm && ` (filtered from ${voices.length})`}
+        {isMyVoicesFilter
+          ? `${personalVoices.length} personal voice${personalVoices.length !== 1 ? 's' : ''}`
+          : `${filteredVoices.length} voice${filteredVoices.length !== 1 ? 's' : ''} available${searchTerm ? ` (filtered from ${voices.length})` : ''}`
+        }
       </div>
     </div>
   );

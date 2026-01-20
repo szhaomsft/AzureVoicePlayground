@@ -47,7 +47,8 @@ export function HistoryEntry({ entry, onDelete }: HistoryEntryProps) {
     // Sanitize voice name and region for filename (remove special characters)
     const voiceName = entry.voice.replace(/[^a-zA-Z0-9-]/g, '_');
     const region = entry.region.replace(/[^a-zA-Z0-9-]/g, '_');
-    const filename = `azurevoice-${region}-${voiceName}-${timestamp}.mp3`;
+    const modelPart = entry.model ? `-${entry.model.replace(/[^a-zA-Z0-9-]/g, '_')}` : '';
+    const filename = `azurevoice-${region}-${voiceName}${modelPart}-${timestamp}.mp3`;
     downloadAudioAsMP3(entry.audioData, filename);
   };
 
@@ -74,10 +75,16 @@ export function HistoryEntry({ entry, onDelete }: HistoryEntryProps) {
       {/* Text snippet and metadata */}
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-800 truncate mb-1">{truncatedText}</p>
-        <div className="flex items-center gap-3 text-xs text-gray-500">
+        <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
           <span>{timeString}</span>
           <span>•</span>
           <span className="truncate max-w-[200px]">{entry.voice}</span>
+          {entry.model && (
+            <>
+              <span>•</span>
+              <span className="text-emerald-600 font-medium">{entry.model}</span>
+            </>
+          )}
           <span>•</span>
           <span>{entry.region}</span>
           <span>•</span>

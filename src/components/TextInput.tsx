@@ -1,6 +1,15 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { WordBoundary, SynthesisState } from '../types/azure';
 import { getLanguageFromVoice, getPresetsForLanguage } from '../utils/languagePresets';
+import { buildPersonalVoiceSsml } from '../lib/personalVoice/personalVoiceClient';
+import { PersonalVoiceModel } from '../types/personalVoice';
+
+interface PersonalVoiceInfo {
+  isPersonalVoice: boolean;
+  speakerProfileId?: string;
+  locale?: string;
+  model?: PersonalVoiceModel;
+}
 
 interface TextInputProps {
   text: string;
@@ -9,6 +18,9 @@ interface TextInputProps {
   currentWordIndex: number;
   selectedVoice: string;
   state: SynthesisState;
+  personalVoiceInfo?: PersonalVoiceInfo;
+  selectedPresetLanguage: string;
+  onPresetLanguageChange: (language: string) => void;
 }
 
 export function TextInput({
@@ -18,11 +30,13 @@ export function TextInput({
   currentWordIndex,
   selectedVoice,
   state,
+  personalVoiceInfo,
+  selectedPresetLanguage,
+  onPresetLanguageChange,
 }: TextInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const [showSSML, setShowSSML] = useState(false);
-  const [selectedPresetLanguage, setSelectedPresetLanguage] = useState<string>('');
 
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const charCount = text.length;
@@ -81,9 +95,59 @@ export function TextInput({
     );
   };
 
+  // Simple language detection based on character ranges
+  const detectLanguageFromText = (text: string): string | null => {
+    if (!text.trim()) return null;
+
+    // Count characters in different scripts
+    const cjkPattern = /[\u4e00-\u9fff\u3400-\u4dbf]/g; // Chinese
+    const japanesePattern = /[\u3040-\u309f\u30a0-\u30ff]/g; // Hiragana + Katakana
+    const koreanPattern = /[\uac00-\ud7af\u1100-\u11ff]/g; // Korean
+    const arabicPattern = /[\u0600-\u06ff]/g; // Arabic
+    const hebrewPattern = /[\u0590-\u05ff]/g; // Hebrew
+    const cyrillicPattern = /[\u0400-\u04ff]/g; // Cyrillic (Russian, etc.)
+    const thaiPattern = /[\u0e00-\u0e7f]/g; // Thai
+
+    const cjkCount = (text.match(cjkPattern) || []).length;
+    const japaneseCount = (text.match(japanesePattern) || []).length;
+    const koreanCount = (text.match(koreanPattern) || []).length;
+    const arabicCount = (text.match(arabicPattern) || []).length;
+    const hebrewCount = (text.match(hebrewPattern) || []).length;
+    const cyrillicCount = (text.match(cyrillicPattern) || []).length;
+    const thaiCount = (text.match(thaiPattern) || []).length;
+
+    // If significant presence of non-Latin characters, detect language
+    const threshold = 5;
+
+    if (japaneseCount > threshold) return 'ja-JP';
+    if (koreanCount > threshold) return 'ko-KR';
+    if (cjkCount > threshold) return 'zh-CN'; // Default to simplified Chinese
+    if (arabicCount > threshold) return 'ar-SA';
+    if (hebrewCount > threshold) return 'he-IL';
+    if (cyrillicCount > threshold) return 'ru-RU';
+    if (thaiCount > threshold) return 'th-TH';
+
+    return null;
+  };
+
   // Generate SSML from plain text
   const generateSSML = () => {
-    return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+    // Use preset language selection, or detect from text, or fall back to voice language
+    const detectedLanguage = detectLanguageFromText(text);
+    const ssmlLocale = selectedPresetLanguage || detectedLanguage || currentLanguage || 'en-US';
+
+    // Check if this is a personal voice
+    if (personalVoiceInfo?.isPersonalVoice && personalVoiceInfo?.speakerProfileId) {
+      return buildPersonalVoiceSsml(
+        text,
+        personalVoiceInfo.speakerProfileId,
+        ssmlLocale,
+        personalVoiceInfo.model || 'DragonLatestNeural'
+      );
+    }
+
+    // Regular voice SSML
+    return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${ssmlLocale}">
   <voice name="${selectedVoice}">
     ${text}
   </voice>
@@ -114,7 +178,7 @@ export function TextInput({
           </label>
           <select
             value={selectedPresetLanguage}
-            onChange={(e) => setSelectedPresetLanguage(e.target.value)}
+            onChange={(e) => onPresetLanguageChange(e.target.value)}
             disabled={isPlaying}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           >

@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AzureSettings, WordBoundary, SynthesisState } from '../types/azure';
 import { HistoryEntry } from '../types/history';
 import { useAzureTTS } from '../hooks/useAzureTTS';
-import { VoiceSelector } from './VoiceSelector';
+import { VoiceSelector, SelectedVoiceInfo } from './VoiceSelector';
 import { TextInput } from './TextInput';
 import { PlaybackControls } from './PlaybackControls';
 import { FeedbackButton } from './FeedbackButton';
 import { HistoryPanel } from './HistoryPanel';
 import { getAudioDuration } from '../utils/audioUtils';
+import { PERSONAL_VOICE_MODELS, PersonalVoiceModel } from '../types/personalVoice';
+import { getLanguageFromVoice } from '../utils/languagePresets';
 
 interface TextToSpeechPlaygroundProps {
   settings: AzureSettings;
@@ -31,15 +33,25 @@ export function TextToSpeechPlayground({
   const [text, setText] = useState(
     'Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.'
   );
+  const [selectedPresetLanguage, setSelectedPresetLanguage] = useState<string>('');
   const previousAudioDataRef = useRef<ArrayBuffer | null>(null);
 
   const { state, error, wordBoundaries, currentWordIndex, audioData, synthesize, pause, resume, stop } =
     useAzureTTS(settings);
 
+  // Get current language from selected voice or preset selection
+  const currentLanguage = getLanguageFromVoice(settings.selectedVoice);
+  const synthesisLocale = selectedPresetLanguage || currentLanguage || 'en-US';
+
   // Add to history when synthesis completes successfully with NEW audio
   useEffect(() => {
     if (audioData && audioData !== previousAudioDataRef.current) {
       previousAudioDataRef.current = audioData;
+
+      // Get model if personal voice
+      const model = settings.personalVoiceInfo?.isPersonalVoice
+        ? settings.personalVoiceInfo.model
+        : undefined;
 
       getAudioDuration(audioData)
         .then((duration) => {
@@ -50,6 +62,7 @@ export function TextToSpeechPlayground({
             region: settings.region,
             audioData: audioData,
             duration: duration,
+            model: model,
           });
         })
         .catch((err) => {
@@ -62,13 +75,14 @@ export function TextToSpeechPlayground({
             region: settings.region,
             audioData: audioData,
             duration: estimatedDuration,
+            model: model,
           });
         });
     }
-  }, [audioData, text, settings.selectedVoice, settings.region, addToHistory]);
+  }, [audioData, text, settings.selectedVoice, settings.region, settings.personalVoiceInfo, addToHistory]);
 
   const handlePlay = () => {
-    synthesize(text);
+    synthesize(text, synthesisLocale);
   };
 
   return (
@@ -94,6 +108,9 @@ export function TextToSpeechPlayground({
               currentWordIndex={currentWordIndex}
               selectedVoice={settings.selectedVoice}
               state={state}
+              personalVoiceInfo={settings.personalVoiceInfo}
+              selectedPresetLanguage={selectedPresetLanguage}
+              onPresetLanguageChange={setSelectedPresetLanguage}
             />
           </div>
 
@@ -146,10 +163,52 @@ export function TextToSpeechPlayground({
             selectedVoice={settings.selectedVoice}
             onVoiceChange={(voice) => {
               console.log('TTSPlayground: Voice changed to:', voice);
+              // Only update selectedVoice here, personalVoiceInfo is updated via onVoiceInfoChange
               onSettingsChange({ selectedVoice: voice });
+            }}
+            onVoiceInfoChange={(info: SelectedVoiceInfo) => {
+              console.log('TTSPlayground: Voice info changed:', info);
+              // Update both selectedVoice and personalVoiceInfo together to avoid race conditions
+              const voiceName = info.isPersonalVoice ? `personal:${info.voiceName}` : info.voiceName;
+              onSettingsChange({
+                selectedVoice: voiceName,
+                personalVoiceInfo: {
+                  isPersonalVoice: info.isPersonalVoice,
+                  speakerProfileId: info.speakerProfileId,
+                  locale: info.locale,
+                  model: info.isPersonalVoice ? (settings.personalVoiceInfo?.model || 'DragonLatestNeural') : undefined,
+                },
+              });
             }}
           />
         </div>
+
+        {/* Personal Voice Model Selector - only show when personal voice is selected */}
+        {settings.personalVoiceInfo?.isPersonalVoice && settings.selectedVoice?.startsWith('personal:') && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Voice Model
+            </label>
+            <select
+              value={settings.personalVoiceInfo?.model || 'DragonLatestNeural'}
+              onChange={(e) => {
+                onSettingsChange({
+                  personalVoiceInfo: {
+                    ...settings.personalVoiceInfo!,
+                    model: e.target.value as PersonalVoiceModel,
+                  },
+                });
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {PERSONAL_VOICE_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} - {m.description}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );

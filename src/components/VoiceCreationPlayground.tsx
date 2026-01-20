@@ -4,6 +4,7 @@ import {
   type PersonalVoice,
   type PersonalVoiceModel,
   type VoiceCreationConfig,
+  type Consent,
   DEFAULT_VOICE_CREATION_CONFIG,
   SUPPORTED_LOCALES,
   PERSONAL_VOICE_MODELS,

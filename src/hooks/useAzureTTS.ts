@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import * as SpeechSDK from 'microsoft-cognitiveservices-speech-sdk';
 import { AzureSettings, WordBoundary, SynthesisState } from '../types/azure';
+import { buildPersonalVoiceSsml } from '../lib/personalVoice/personalVoiceClient';
 
 export function useAzureTTS(settings: AzureSettings) {
   const [state, setState] = useState<SynthesisState>('idle');
@@ -8,6 +9,12 @@ export function useAzureTTS(settings: AzureSettings) {
   const [wordBoundaries, setWordBoundaries] = useState<WordBoundary[]>([]);
   const [currentWordIndex, setCurrentWordIndex] = useState<number>(-1);
   const [audioData, setAudioData] = useState<ArrayBuffer | null>(null);
+
+  // Use a ref to always have the latest settings
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const synthesizerRef = useRef<SpeechSDK.SpeechSynthesizer | null>(null);
   const playerRef = useRef<SpeechSDK.SpeakerAudioDestination | null>(null);
@@ -27,13 +34,24 @@ export function useAzureTTS(settings: AzureSettings) {
       synthesizerRef.current.close();
     }
 
-    console.log('Initializing synthesizer with voice:', settings.selectedVoice);
+    // Use settingsRef to get the latest settings value
+    const currentSettings = settingsRef.current;
+    const isPersonalVoice = currentSettings.personalVoiceInfo?.isPersonalVoice && currentSettings.personalVoiceInfo?.speakerProfileId;
+
+    console.log('Initializing synthesizer with voice:', currentSettings.selectedVoice, 'isPersonalVoice:', isPersonalVoice);
+    console.log('personalVoiceInfo:', currentSettings.personalVoiceInfo);
 
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(
-      settings.apiKey,
-      settings.region
+      currentSettings.apiKey,
+      currentSettings.region
     );
-    speechConfig.speechSynthesisVoiceName = settings.selectedVoice;
+
+    // For personal voices, don't set the voice name - let SSML handle it
+    // For regular voices, set the voice name
+    if (!isPersonalVoice) {
+      speechConfig.speechSynthesisVoiceName = currentSettings.selectedVoice;
+    }
+
     speechConfig.speechSynthesisOutputFormat =
       SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3;
 
@@ -46,7 +64,7 @@ export function useAzureTTS(settings: AzureSettings) {
     synthesizerRef.current = synthesizer;
 
     return synthesizer;
-  }, [settings]);
+  }, []);
 
   const trackWordPosition = useCallback(() => {
     if (!isPlayingRef.current) {
@@ -98,7 +116,7 @@ export function useAzureTTS(settings: AzureSettings) {
   }, []);
 
   const synthesize = useCallback(
-    (text: string) => {
+    (text: string, locale?: string) => {
       if (!text.trim()) {
         setError('Please enter some text to synthesize');
         return;
@@ -128,9 +146,25 @@ export function useAzureTTS(settings: AzureSettings) {
 
       // Listen to word boundary events
       synthesizer.wordBoundary = (_s, e) => {
+        // For SSML synthesis, textOffset is relative to SSML, not plain text
+        // We need to find the word position in the original plain text
+        let textOffset = e.textOffset;
+
+        // If using personal voice (SSML), find the word in the original text
+        const isPersonalVoice = settingsRef.current.personalVoiceInfo?.isPersonalVoice;
+        if (isPersonalVoice && e.text) {
+          // Find this word in the input text, starting after the last found word
+          const lastBoundary = boundariesRef.current[boundariesRef.current.length - 1];
+          const searchStart = lastBoundary ? lastBoundary.offset + lastBoundary.length : 0;
+          const foundIndex = inputTextRef.current.indexOf(e.text, searchStart);
+          if (foundIndex !== -1) {
+            textOffset = foundIndex;
+          }
+        }
+
         const boundary: WordBoundary = {
           text: e.text,
-          offset: e.textOffset,
+          offset: textOffset,
           length: e.wordLength,
           audioOffset: e.audioOffset / 10000, // Convert to milliseconds
         };
@@ -247,24 +281,66 @@ export function useAzureTTS(settings: AzureSettings) {
         }
       };
 
-      // Start synthesis
-      synthesizer.speakTextAsync(
-        text,
-        (result) => {
-          if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-            console.log('Synthesis completed successfully');
-          } else {
-            console.error('Synthesis failed:', result.errorDetails);
-            setError(result.errorDetails || 'Synthesis failed');
+      // Start synthesis - use SSML for personal voices, plain text for regular voices
+      // Use settingsRef.current to get the latest settings value
+      const currentSettings = settingsRef.current;
+      const isPersonalVoice = currentSettings.personalVoiceInfo?.isPersonalVoice && currentSettings.personalVoiceInfo?.speakerProfileId;
+
+      console.log('=== SYNTHESIS DEBUG ===');
+      console.log('currentSettings.personalVoiceInfo:', currentSettings.personalVoiceInfo);
+      console.log('isPersonalVoice:', isPersonalVoice);
+      console.log('selectedVoice:', currentSettings.selectedVoice);
+      console.log('locale:', locale);
+      console.log('=======================');
+
+      if (isPersonalVoice) {
+        const model = currentSettings.personalVoiceInfo!.model || 'DragonLatestNeural';
+        const ssmlLocale = locale || 'en-US';
+        const ssml = buildPersonalVoiceSsml(
+          text,
+          currentSettings.personalVoiceInfo!.speakerProfileId!,
+          ssmlLocale,
+          model
+        );
+        console.log('Using personal voice SSML with model:', model);
+        console.log('SSML:', ssml);
+
+        synthesizer.speakSsmlAsync(
+          ssml,
+          (result) => {
+            if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+              console.log('Personal voice synthesis completed successfully');
+            } else {
+              console.error('Personal voice synthesis failed:', result.errorDetails);
+              setError(result.errorDetails || 'Synthesis failed');
+              setState('error');
+            }
+          },
+          (error) => {
+            console.error('Personal voice synthesis error:', error);
+            setError(error);
             setState('error');
           }
-        },
-        (error) => {
-          console.error('Synthesis error:', error);
-          setError(error);
-          setState('error');
-        }
-      );
+        );
+      } else {
+        synthesizer.speakTextAsync(
+          text,
+          (result) => {
+            if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+              console.log('Synthesis completed successfully');
+            } else {
+              console.error('Synthesis failed:', result.errorDetails);
+              setError(result.errorDetails || 'Synthesis failed');
+              setState('error');
+            }
+          },
+          (error) => {
+            console.error('Synthesis error:', error);
+            setError(error);
+            setState('error');
+          }
+        );
+      }
     },
     [initializeSynthesizer, trackWordPosition]
   );
