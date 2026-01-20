@@ -379,7 +379,7 @@ Bonjour, ceci est ma voix personnelle.`);
                       </div>
 
                       {/* Two Steps Side by Side */}
-                      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3">
+                      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 overflow-auto">
                         {/* Step 1: Consent */}
                         <div className={`flex flex-col rounded-lg border p-3 ${currentStep === 'consent' ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
                           <div className="flex items-center gap-2 mb-2 flex-shrink-0">
@@ -394,7 +394,7 @@ Bonjour, ceci est ma voix personnelle.`);
                             <p className="text-blue-900 italic mt-0.5 line-clamp-2">"{getConsentTemplate()}"</p>
                           </div>
 
-                          <div className="flex-1 min-h-0">
+                          <div className="flex-shrink-0">
                             <AudioRecorder
                               onRecordingComplete={setConsentAudio}
                               maxDuration={30}
@@ -432,7 +432,7 @@ Bonjour, ceci est ma voix personnelle.`);
                             </ul>
                           </div>
 
-                          <div className="flex-1 min-h-0">
+                          <div className="flex-shrink-0">
                             <AudioRecorder
                               onRecordingComplete={setVoiceAudio}
                               maxDuration={90}
