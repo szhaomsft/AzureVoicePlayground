@@ -388,9 +388,15 @@ export function VoiceCreationPlayground({ settings }: VoiceCreationPlaygroundPro
                             <h3 className="text-sm font-semibold text-gray-800">Record Voice Sample</h3>
                           </div>
 
-                          <p className="text-xs text-gray-600 mb-2 flex-shrink-0">
-                            Record 5-90 seconds. Speak naturally.
-                          </p>
+                          <div className="text-xs text-gray-600 mb-2 flex-shrink-0 space-y-1">
+                            <p className="font-medium">Recording Guidelines (5-90 seconds):</p>
+                            <ul className="list-disc list-inside space-y-0.5 text-gray-500">
+                              <li>Record in a quiet environment with minimal background noise</li>
+                              <li>Speak in the style/tone you want for your voice (e.g., storytelling, podcast, customer care)</li>
+                              <li>Relax and speak naturally - make your voice sound as realistic as possible</li>
+                              <li>Maintain consistent volume and distance from the microphone</li>
+                            </ul>
+                          </div>
 
                           <div className="flex-1 min-h-0">
                             <AudioRecorder
