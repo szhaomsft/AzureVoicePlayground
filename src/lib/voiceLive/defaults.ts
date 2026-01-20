@@ -124,11 +124,8 @@ export function toRequestSession(config: VoiceLiveConfig): RequestSession {
           silenceDurationInMs: config.silenceDurationInMs,
           speechDurationInMs: config.speechDurationInMs,
           removeFillerWords: config.removeFillerWords,
-          endOfUtteranceDetection: {
-            model: config.eouModel,
-            thresholdLevel: config.eouThresholdLevel,
-            timeoutInMs: config.eouTimeoutInMs,
-          },
+          // Note: endOfUtteranceDetection is only supported for cascaded pipelines (Voice Live Chat)
+          // and causes errors for the translator, so it's intentionally omitted here
           createResponse: true,
           interruptResponse: false,
         };
