@@ -163,8 +163,6 @@ export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderPro
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">Source Audio</label>
-
       {/* Hidden file input */}
       <input
         ref={fileInputRef}

@@ -5,6 +5,7 @@ import { AzureSettings } from '../types/azure';
 import { FastTranscript, TranscriptSegment, WordTiming } from '../types/transcription';
 import { STTState } from '../types/stt';
 import { convertToWav16kHz } from '../utils/audioConversion';
+import { FAST_TRANSCRIPTION_LANGUAGES } from '../utils/sttLanguages';
 
 interface UseFastTranscriptionReturn {
   state: STTState;
@@ -41,24 +42,35 @@ export function useFastTranscription(settings: AzureSettings): UseFastTranscript
       const wavBlob = await convertToWav16kHz(audioFile);
       setProgress(30);
 
-      // Use en-US as default if auto-detect is selected (Fast API doesn't support auto-detect)
-      const languageCode = language === 'auto' ? 'en-US' : language;
-
+      // Prepare locales array
+      let locales: string[];
       if (language === 'auto') {
-        console.warn('Auto-detect not supported for Fast Transcription, defaulting to en-US');
+        // For auto-detect, pass all supported language codes for Fast Transcription
+        locales = FAST_TRANSCRIPTION_LANGUAGES.map(lang => lang.code);
+        console.log('Auto-detect enabled, using all Fast Transcription locales:', locales.length);
+      } else {
+        // Use specific language
+        locales = [language];
       }
 
       // Call Fast Transcription API
-      const endpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/v3.2/transcriptions:transcribe?language=${languageCode}`;
+      const endpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15`;
 
       setProgress(50);
+
+      // Create FormData with audio and definition
+      const formData = new FormData();
+      formData.append('audio', wavBlob, 'audio.wav');
+      formData.append('definition', JSON.stringify({
+        locales: locales
+      }));
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Ocp-Apim-Subscription-Key': settings.apiKey,
         },
-        body: wavBlob
+        body: formData
       });
 
       setProgress(70);
@@ -72,7 +84,7 @@ export function useFastTranscription(settings: AzureSettings): UseFastTranscript
       setProgress(90);
 
       // Parse the transcription result
-      const parsedTranscript = parseTranscriptResult(result, languageCode);
+      const parsedTranscript = parseTranscriptResult(result, language);
       setTranscript(parsedTranscript);
       setProgress(100);
       setState('completed');
@@ -102,40 +114,77 @@ export function useFastTranscription(settings: AzureSettings): UseFastTranscript
 }
 
 /**
- * Parse Fast Transcription API response
+ * Parse Fast Transcription API response (2024-11-15 format)
  */
 function parseTranscriptResult(apiResponse: any, language: string): FastTranscript {
-  // Extract full text from combinedRecognizedPhrases
-  const fullText = apiResponse.combinedRecognizedPhrases?.[0]?.display || '';
+  console.log('Fast Transcription API Response:', apiResponse);
 
-  // Parse segments from recognizedPhrases
-  const segments: TranscriptSegment[] = (apiResponse.recognizedPhrases || []).map((phrase: any) => {
-    const nBest = phrase.nBest?.[0];
-    if (!nBest) {
-      return null;
-    }
+  // Handle new API format with combinedPhrases
+  let fullText = '';
+  let segments: TranscriptSegment[] = [];
 
-    // Parse ISO 8601 duration format (PT0S, PT1.5S, etc.)
-    const offset = parseISO8601Duration(phrase.offset || 'PT0S');
-    const duration = parseISO8601Duration(phrase.duration || 'PT0S');
-    const confidence = nBest.confidence || 0.9;
+  // Try to extract from combinedPhrases (new format)
+  if (apiResponse.combinedPhrases && apiResponse.combinedPhrases.length > 0) {
+    fullText = apiResponse.combinedPhrases[0].text || '';
+  }
+  // Fallback to combinedRecognizedPhrases (old format)
+  else if (apiResponse.combinedRecognizedPhrases && apiResponse.combinedRecognizedPhrases.length > 0) {
+    fullText = apiResponse.combinedRecognizedPhrases[0].display || '';
+  }
 
-    // Parse word-level timings
-    const words: WordTiming[] | undefined = nBest.words?.map((word: any) => ({
-      text: word.word,
-      offset: parseISO8601Duration(word.offset),
-      duration: parseISO8601Duration(word.duration),
-      confidence: word.confidence || confidence
-    }));
+  // Parse segments from phrases (new format)
+  if (apiResponse.phrases && Array.isArray(apiResponse.phrases)) {
+    segments = apiResponse.phrases.map((phrase: any) => {
+      const offset = parseTimestamp(phrase.offset || phrase.offsetInTicks || 0);
+      const duration = parseTimestamp(phrase.duration || phrase.durationInTicks || 0);
+      const confidence = phrase.confidence || phrase.nBest?.[0]?.confidence || 0.9;
+      const text = phrase.text || phrase.nBest?.[0]?.display || '';
 
-    return {
-      text: nBest.display,
-      offset,
-      duration,
-      confidence,
-      words
-    };
-  }).filter(Boolean);
+      // Parse word-level timings if available
+      const words: WordTiming[] | undefined = phrase.words?.map((word: any) => ({
+        text: word.word || word.text,
+        offset: parseTimestamp(word.offset || word.offsetInTicks || 0),
+        duration: parseTimestamp(word.duration || word.durationInTicks || 0),
+        confidence: word.confidence || confidence
+      }));
+
+      return {
+        text,
+        offset,
+        duration,
+        confidence,
+        words
+      };
+    }).filter((seg: any) => seg.text);
+  }
+  // Fallback to recognizedPhrases (old format)
+  else if (apiResponse.recognizedPhrases && Array.isArray(apiResponse.recognizedPhrases)) {
+    segments = apiResponse.recognizedPhrases.map((phrase: any) => {
+      const nBest = phrase.nBest?.[0];
+      if (!nBest) {
+        return null;
+      }
+
+      const offset = parseISO8601Duration(phrase.offset || 'PT0S');
+      const duration = parseISO8601Duration(phrase.duration || 'PT0S');
+      const confidence = nBest.confidence || 0.9;
+
+      const words: WordTiming[] | undefined = nBest.words?.map((word: any) => ({
+        text: word.word,
+        offset: parseISO8601Duration(word.offset),
+        duration: parseISO8601Duration(word.duration),
+        confidence: word.confidence || confidence
+      }));
+
+      return {
+        text: nBest.display,
+        offset,
+        duration,
+        confidence,
+        words
+      };
+    }).filter(Boolean);
+  }
 
   // Calculate total duration
   const totalDuration = segments.length > 0
@@ -148,6 +197,21 @@ function parseTranscriptResult(apiResponse: any, language: string): FastTranscri
     language,
     duration: totalDuration
   };
+}
+
+/**
+ * Parse timestamp - handles both ticks (100-nanosecond units) and ISO 8601 duration
+ */
+function parseTimestamp(value: any): number {
+  if (typeof value === 'number') {
+    // Convert from ticks (100-nanosecond units) to milliseconds
+    return value / 10000;
+  }
+  if (typeof value === 'string') {
+    // Try ISO 8601 duration format
+    return parseISO8601Duration(value);
+  }
+  return 0;
 }
 
 /**

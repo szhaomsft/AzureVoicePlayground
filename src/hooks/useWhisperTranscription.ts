@@ -44,6 +44,10 @@ export function useWhisperTranscription(settings: AzureSettings): UseWhisperTran
         throw new Error('Audio file must be less than 10 MB for Whisper API (data URL limitation)');
       }
 
+      // Note: Whisper Batch API requires publicly accessible URLs
+      // Data URLs may not be supported - this is experimental
+      throw new Error('Whisper API requires publicly accessible audio URLs. Data URLs are not supported. Please use Azure Blob Storage or a public URL.');
+
       // Convert audio to WAV format
       const wavBlob = await convertToWav16kHz(audioFile);
 
@@ -155,7 +159,25 @@ async function createTranscriptionJob(
   language: string,
   signal: AbortSignal
 ): Promise<string> {
-  const endpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/v3.2/transcriptions`;
+  // First, get the Whisper model ID
+  const modelsEndpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/models/base?api-version=2024-11-15`;
+
+  const modelsResponse = await fetch(modelsEndpoint, {
+    headers: {
+      'Ocp-Apim-Subscription-Key': settings.apiKey
+    },
+    signal
+  });
+
+  if (!modelsResponse.ok) {
+    throw new Error(`Failed to get Whisper model (${modelsResponse.status})`);
+  }
+
+  const modelData = await modelsResponse.json();
+  const modelSelf = modelData.self; // Use the full model URL from the response
+
+  // Create transcription job
+  const endpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/transcriptions:submit?api-version=2024-11-15`;
 
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -168,13 +190,10 @@ async function createTranscriptionJob(
       locale: language,
       displayName: `Whisper Transcription ${Date.now()}`,
       model: {
-        self: `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/v3.2/models/base/whisper`
+        self: modelSelf
       },
       properties: {
-        diarizationEnabled: false,
-        wordLevelTimestampsEnabled: true,
-        punctuationMode: 'DictatedAndAutomatic',
-        profanityFilterMode: 'Masked'
+        wordLevelTimestampsEnabled: true
       }
     }),
     signal
@@ -182,6 +201,14 @@ async function createTranscriptionJob(
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('Whisper API Error:', errorText);
+    console.error('Request body:', JSON.stringify({
+      contentUrls: [audioDataUrl.substring(0, 100) + '...'],
+      locale: language,
+      displayName: `Whisper Transcription ${Date.now()}`,
+      model: { self: modelSelf },
+      properties: { wordLevelTimestampsEnabled: true }
+    }, null, 2));
     throw new Error(`Failed to create transcription job (${response.status}): ${errorText}`);
   }
 

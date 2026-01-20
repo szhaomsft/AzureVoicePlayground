@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { STTModel } from '../types/stt';
+import { FAST_TRANSCRIPTION_LANGUAGES, REALTIME_LANGUAGES } from '../utils/sttLanguages';
 
 interface STTModelSelectorProps {
   selectedModel: STTModel;
@@ -24,7 +25,7 @@ const MODELS: ModelInfo[] = [
     description: 'WebSocket streaming, low-latency recognition',
     icon: '⚡',
     useCases: 'Live transcription, real-time captions',
-    features: ['Streaming results', 'Word-level timestamps', 'Low latency']
+    features: ['Streaming results', 'Word-level timestamps', 'Low latency', 'Any file size', `${REALTIME_LANGUAGES.length} locales`]
   },
   {
     id: 'fast-transcription',
@@ -32,16 +33,17 @@ const MODELS: ModelInfo[] = [
     description: 'REST API optimized for speed',
     icon: '🚀',
     useCases: 'Quick audio file transcription',
-    features: ['Fast processing', 'Batch transcription', 'Up to 25 MB files']
+    features: ['Fast processing', 'Batch transcription', 'Max 25 MB', `${FAST_TRANSCRIPTION_LANGUAGES.length} locales`]
   },
-  {
-    id: 'whisper',
-    name: 'Whisper Model',
-    description: 'OpenAI Whisper via Batch ASR',
-    icon: '🎯',
-    useCases: 'High-accuracy batch processing',
-    features: ['Highest accuracy', 'Multi-language support', 'Robust to noise']
-  }
+  // Whisper temporarily hidden - requires Azure Blob Storage for audio URLs
+  // {
+  //   id: 'whisper',
+  //   name: 'Whisper Model',
+  //   description: 'OpenAI Whisper via Batch ASR',
+  //   icon: '🎯',
+  //   useCases: 'High-accuracy batch processing',
+  //   features: ['Highest accuracy', 'Multi-language support', 'Max 10 MB']
+  // }
 ];
 
 export function STTModelSelector({ selectedModel, onModelChange }: STTModelSelectorProps) {

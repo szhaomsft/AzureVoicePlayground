@@ -2,24 +2,28 @@
 
 import React, { useState, useMemo } from 'react';
 import { getAllLanguages, searchLanguages, STTLanguage } from '../utils/sttLanguages';
+import { STTModel } from '../types/stt';
 
 interface LanguageSelectorProps {
   selectedLanguage: string;
   onLanguageChange: (languageCode: string) => void;
+  selectedModel: STTModel;
 }
 
-export function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelectorProps) {
+export function LanguageSelector({ selectedLanguage, onLanguageChange, selectedModel }: LanguageSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
-  const allLanguages = useMemo(() => getAllLanguages(), []);
+  const modelType = selectedModel === 'fast-transcription' ? 'fast-transcription' : 'realtime';
+
+  const allLanguages = useMemo(() => getAllLanguages(modelType), [modelType]);
 
   const filteredLanguages = useMemo(() => {
     if (!searchQuery.trim()) {
       return allLanguages;
     }
-    return searchLanguages(searchQuery);
-  }, [searchQuery, allLanguages]);
+    return [allLanguages[0], ...searchLanguages(searchQuery, modelType)];
+  }, [searchQuery, allLanguages, modelType]);
 
   const selectedLang = useMemo(() => {
     return allLanguages.find(lang => lang.code === selectedLanguage);

@@ -184,160 +184,147 @@ export function SpeechToTextPlayground({
   const displayData = getDisplayData();
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-      {/* Left side - Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 shadow-md">
-          <h1 className="text-3xl font-bold">Speech to Text</h1>
-          <p className="text-purple-100 mt-1">
-            Transcribe audio using Azure Speech Recognition APIs
-          </p>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col gap-6 p-6 overflow-y-auto">
-          {/* Model Selection */}
-          <STTModelSelector
-            selectedModel={selectedModel}
-            onModelChange={(model) => {
-              setSelectedModel(model);
-              currentHook.reset();
-            }}
-          />
-
-          {/* Language Selection */}
-          <LanguageSelector
-            selectedLanguage={selectedLanguage}
-            onLanguageChange={setSelectedLanguage}
-          />
-
-          {/* Transcription Button */}
-          <div className="space-y-2">
-            {!isConfigured && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm text-yellow-800">
-                  Please configure your Azure API key and region in the settings to use Speech-to-Text.
-                </p>
-              </div>
-            )}
-
-            {currentHook.error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-red-800">Transcription Error</p>
-                    <p className="text-sm text-red-700 mt-1">{currentHook.error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {selectedModel === 'whisper' && whisperTranscription.pollingStatus && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">{whisperTranscription.pollingStatus}</p>
-              </div>
-            )}
-
-            <button
-              onClick={isProcessing ? handleCancel : handleTranscribe}
-              disabled={!isConfigured || !audioSource}
-              className={`
-                w-full py-3 px-6 rounded-lg font-semibold text-white transition-all
-                ${isProcessing
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
-                }
-                disabled:opacity-50 disabled:cursor-not-allowed
-                flex items-center justify-center gap-2
-              `}
-            >
-              {isProcessing ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Cancel</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
-                  <span>Transcribe Audio</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Transcript Display */}
-          <TranscriptDisplay
-            segments={displayData.segments}
-            fullText={displayData.fullText}
-            interimText={displayData.interimText}
-            isStreaming={displayData.isStreaming}
-          />
-
-          {/* Export Options */}
-          {hasTranscript && (
-            <ExportTranscript
-              segments={displayData.segments}
-              filename={audioFileName || 'transcript'}
-            />
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="bg-gray-50 border-t border-gray-200 px-6 py-3">
-          <p className="text-xs text-gray-600">
-            Powered by Azure Speech Services - Realtime, Fast Transcription, and Whisper APIs
-          </p>
-        </div>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 shadow-md">
+        <h1 className="text-3xl font-bold">Speech to Text</h1>
+        <p className="text-purple-100 mt-1">
+          Transcribe audio using Azure Speech Recognition APIs
+        </p>
       </div>
 
-      {/* Right side - Audio Input */}
-      <div className="w-full md:w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 p-6 flex flex-col gap-6 overflow-y-auto">
-        <h2 className="text-lg font-semibold text-gray-800">Audio Source</h2>
+      {/* Main Content - Two Column Layout */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Left side - Audio Source & Transcript */}
+        <div className="flex-1 bg-gray-50 border-r border-gray-200 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col gap-6 p-6 overflow-y-auto">
+            <h2 className="text-lg font-semibold text-gray-800">Audio Source</h2>
 
-        {/* Audio Uploader */}
-        <div>
-          <AudioUploader
-            onFileChange={handleAudioFileChange}
-            maxSize={selectedModel === 'whisper' ? 10 * 1024 * 1024 : 25 * 1024 * 1024}
-            accept="audio/*"
-          />
-        </div>
+            {/* Audio Uploader */}
+            <div>
+              <AudioUploader
+                file={audioSource instanceof File ? audioSource : null}
+                onFileChange={handleAudioFileChange}
+                disabled={!isConfigured}
+              />
+            </div>
 
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-gray-50 text-gray-500">or</span>
+              </div>
+            </div>
+
+            {/* Audio Recorder */}
+            <div>
+              <AudioRecorder
+                onRecordingComplete={handleRecordingComplete}
+                allowUpload={false}
+              />
+            </div>
+
+            {/* Transcription Button */}
+            <div className="space-y-2">
+              {!isConfigured && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm text-yellow-800">
+                    Please configure your Azure API key and region in the settings to use Speech-to-Text.
+                  </p>
+                </div>
+              )}
+
+              {currentHook.error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-800">{currentHook.error}</p>
+                </div>
+              )}
+
+              {selectedModel === 'whisper' && whisperTranscription.pollingStatus && !currentHook.error && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">{whisperTranscription.pollingStatus}</p>
+                </div>
+              )}
+
+              <button
+                onClick={isProcessing ? handleCancel : handleTranscribe}
+                disabled={!isConfigured || !audioSource}
+                className={`
+                  w-full py-3 px-6 rounded-lg font-semibold text-white transition-all
+                  ${isProcessing
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  flex items-center justify-center gap-2
+                `}
+              >
+                {isProcessing ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Cancel</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <span>Transcribe Audio</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Transcript Display */}
+            <TranscriptDisplay
+              segments={displayData.segments}
+              fullText={displayData.fullText}
+              interimText={displayData.interimText}
+              isStreaming={displayData.isStreaming}
+            />
+
+            {/* Export Options */}
+            {hasTranscript && (
+              <ExportTranscript
+                segments={displayData.segments}
+                filename={audioFileName || 'transcript'}
+              />
+            )}
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-gray-50 text-gray-500">or</span>
+        </div>
+
+        {/* Right side - Recognition Config */}
+        <div className="w-full md:w-[400px] flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col gap-6 p-6 overflow-y-auto">
+            {/* Model Selection */}
+            <STTModelSelector
+              selectedModel={selectedModel}
+              onModelChange={(model) => {
+                setSelectedModel(model);
+                currentHook.reset();
+              }}
+            />
+
+            {/* Language Selection */}
+            <LanguageSelector
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+              selectedModel={selectedModel}
+            />
           </div>
-        </div>
 
-        {/* Audio Recorder */}
-        <div>
-          <AudioRecorder
-            onRecordingComplete={handleRecordingComplete}
-            allowUpload={false}
-          />
-        </div>
-
-        {/* Info */}
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-semibold text-blue-900 mb-2">Model Limits</h3>
-          <ul className="text-xs text-blue-800 space-y-1">
-            <li>Realtime: Any size</li>
-            <li>Fast: Up to 25 MB</li>
-            <li>Whisper: Up to 10 MB</li>
-          </ul>
+          {/* Footer */}
+          <div className="bg-gray-50 border-t border-gray-200 px-6 py-3">
+            <p className="text-xs text-gray-600">
+              Powered by Azure Speech Services - Realtime, Fast Transcription, and Whisper APIs
+            </p>
+          </div>
         </div>
       </div>
     </div>
