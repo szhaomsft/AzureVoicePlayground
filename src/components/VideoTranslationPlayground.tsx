@@ -48,6 +48,22 @@ const LOCALES = [
 
 const TARGET_LOCALES = LOCALES.filter(l => l.code !== '')
 
+// Video Translation supported regions
+// https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions
+const SUPPORTED_REGIONS = [
+  'centralus',
+  'eastus',
+  'japaneast',
+  'northcentralus',
+  'southcentralus',
+  'southeastasia',
+  'westcentralus',
+  'westeurope',
+  'westus',
+  'westus2',
+  'westus3',
+]
+
 const CONFIG_STORAGE_KEY = 'video-translation-config'
 
 function loadConfig(): Partial<VideoTranslationConfig> {
@@ -207,7 +223,8 @@ export function VideoTranslationPlayground({ settings, isConfigured }: VideoTran
   }
 
   const isProcessing = ['creating', 'processing', 'iterating', 'uploading'].includes(status)
-  const canStart = isConfigured && !isProcessing && (
+  const isRegionSupported = SUPPORTED_REGIONS.includes(settings.region.toLowerCase())
+  const canStart = isConfigured && isRegionSupported && !isProcessing && (
     (sourceTab === 'upload' && uploadedBlobUrl) ||
     (sourceTab === 'url' && videoUrl.trim())
   )
@@ -240,6 +257,39 @@ export function VideoTranslationPlayground({ settings, isConfigured }: VideoTran
         {/* Left Panel - Video Source & Results */}
         <div className="flex-1 overflow-auto p-6">
           <div className="space-y-6">
+            {/* Region Not Supported Message */}
+            {isConfigured && !isRegionSupported && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <h3 className="font-semibold text-amber-800">Region Not Supported</h3>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Video Translation is currently only available in the following regions:
+                    </p>
+                    <ul className="text-sm text-amber-700 mt-2 list-disc list-inside grid grid-cols-2 gap-x-4">
+                      <li><strong>Central US</strong> (centralus)</li>
+                      <li><strong>East US</strong> (eastus)</li>
+                      <li><strong>Japan East</strong> (japaneast)</li>
+                      <li><strong>North Central US</strong> (northcentralus)</li>
+                      <li><strong>South Central US</strong> (southcentralus)</li>
+                      <li><strong>Southeast Asia</strong> (southeastasia)</li>
+                      <li><strong>West Central US</strong> (westcentralus)</li>
+                      <li><strong>West Europe</strong> (westeurope)</li>
+                      <li><strong>West US</strong> (westus)</li>
+                      <li><strong>West US 2</strong> (westus2)</li>
+                      <li><strong>West US 3</strong> (westus3)</li>
+                    </ul>
+                    <p className="text-sm text-amber-700 mt-2">
+                      Your current region: <strong>{settings.region}</strong>. Please change your region in the sidebar settings.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Blob Storage Config */}
             <div className="bg-white border border-gray-200 rounded-lg">
               <button
