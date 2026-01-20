@@ -79,10 +79,6 @@ Direct links to playgrounds via URL hash:
 - `#voice-live-chat`
 - `#voice-live-translator`
 
-## Feature Flags
-
-- `?avatar=1` - Enable avatar support in Voice Live Chat
-
 ## Project Structure
 
 ```
