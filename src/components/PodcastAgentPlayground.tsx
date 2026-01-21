@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AzureSettings } from '../types/azure';
 import { PodcastContentUploader } from './PodcastContentUploader';
 import { PodcastVoicePairSelector, getVoiceDetails } from './PodcastVoicePairSelector';
 import { usePodcastGeneration } from '../hooks/usePodcastGeneration';
+import { PodcastVideoRenderer } from '../lib/podcast/videoRenderer';
 import {
   PodcastContentSource,
   PodcastConfig,
@@ -128,6 +129,13 @@ export function PodcastAgentPlayground({
   // UI state
   const [showHistory, setShowHistory] = useState(false);
 
+  // Video generation state
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const [generatedVideoBlob, setGeneratedVideoBlob] = useState<Blob | null>(null);
+  const videoRendererRef = useRef<PodcastVideoRenderer | null>(null);
+
   // Podcast generation hook
   const {
     status,
@@ -188,6 +196,68 @@ export function PodcastAgentPlayground({
       window.open(entry.audioUrl, '_blank');
     }
   }, []);
+
+  const handleGenerateVideo = useCallback(async () => {
+    if (!currentGeneration?.output?.audioFileUrl) return;
+
+    try {
+      setIsGeneratingVideo(true);
+      setVideoProgress(0);
+      setVideoError(null);
+      setGeneratedVideoBlob(null);
+
+      const podcastTitle = currentGeneration.displayName || 'AI Podcast';
+
+      const renderer = new PodcastVideoRenderer({
+        audioUrl: currentGeneration.output.audioFileUrl,
+        podcastTitle,
+        width: 1920,
+        height: 1080,
+        onProgress: (progress) => {
+          setVideoProgress(progress);
+        },
+        onComplete: (videoBlob) => {
+          setGeneratedVideoBlob(videoBlob);
+          setIsGeneratingVideo(false);
+          console.log('Video generation completed!', videoBlob);
+        },
+        onError: (error) => {
+          setVideoError(error.message);
+          setIsGeneratingVideo(false);
+          console.error('Video generation error:', error);
+        },
+      });
+
+      videoRendererRef.current = renderer;
+      await renderer.generate();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setVideoError(errorMessage);
+      setIsGeneratingVideo(false);
+    }
+  }, [currentGeneration]);
+
+  const handleCancelVideo = useCallback(() => {
+    if (videoRendererRef.current) {
+      videoRendererRef.current.cancel();
+      videoRendererRef.current = null;
+    }
+    setIsGeneratingVideo(false);
+    setVideoProgress(0);
+  }, []);
+
+  const handleDownloadVideo = useCallback(() => {
+    if (!generatedVideoBlob) return;
+
+    const url = URL.createObjectURL(generatedVideoBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `podcast-${Date.now()}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [generatedVideoBlob]);
 
   const getStatusColor = (s: GenerationStatus): string => {
     switch (s) {
@@ -437,12 +507,123 @@ export function PodcastAgentPlayground({
                   <audio controls className="w-full" src={currentGeneration.output.audioFileUrl}>
                     Your browser does not support the audio element.
                   </audio>
-                  <a
-                    href={currentGeneration.output.audioFileUrl}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+                  <div className="flex gap-2">
+                    <a
+                      href={currentGeneration.output.audioFileUrl}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        />
+                      </svg>
+                      <span>Download Audio</span>
+                    </a>
+                    <button
+                      onClick={handleGenerateVideo}
+                      disabled={isGeneratingVideo}
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span>Generate Video</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Video Generation Progress */}
+            {isGeneratingVideo && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-purple-900">Generating Video...</h3>
+                  <button
+                    onClick={handleCancelVideo}
+                    className="text-sm text-purple-700 hover:text-purple-900 font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <div className="w-full bg-purple-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${videoProgress * 100}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-purple-700">
+                    {Math.round(videoProgress * 100)}% complete
+                  </div>
+                  <div className="text-xs text-purple-600">
+                    This may take as long as the audio duration. The video is being recorded in real-time.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Video Generation Error */}
+            {videoError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg
+                    className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div>
+                    <h3 className="font-medium text-red-800">Video Generation Failed</h3>
+                    <p className="text-sm text-red-700 mt-1">{videoError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Video Generated Successfully */}
+            {generatedVideoBlob && !isGeneratingVideo && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-medium text-blue-900 mb-3">Video Generated Successfully!</h3>
+                <div className="space-y-3">
+                  <video
+                    controls
+                    className="w-full rounded"
+                    src={URL.createObjectURL(generatedVideoBlob)}
+                  >
+                    Your browser does not support the video element.
+                  </video>
+                  <button
+                    onClick={handleDownloadVideo}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
                   >
                     <svg
                       className="w-4 h-4"
@@ -457,8 +638,11 @@ export function PodcastAgentPlayground({
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                       />
                     </svg>
-                    <span>Download Audio</span>
-                  </a>
+                    <span>Download Video (WebM)</span>
+                  </button>
+                  <div className="text-xs text-blue-600">
+                    Video size: {(generatedVideoBlob.size / 1024 / 1024).toFixed(2)} MB
+                  </div>
                 </div>
               </div>
             )}
