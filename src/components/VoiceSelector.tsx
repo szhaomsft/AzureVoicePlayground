@@ -34,6 +34,7 @@ export function VoiceSelector({
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPreset, setFilterPreset] = useState<string>('');
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   useEffect(() => {
     if (apiKey && region) {
@@ -149,7 +150,9 @@ export function VoiceSelector({
       // and the current selection is not in the filtered list
       const isCurrentVoiceInFilteredList = filteredVoices.some(v => v.name === selectedVoice);
 
-      if ((searchTerm || filterPreset) && !isCurrentVoiceInFilteredList) {
+      // Only auto-select when user has interacted (typed/clicked filter) AND current voice is not in results
+      // This prevents auto-selection on page refresh when selectedVoice is loaded from localStorage
+      if (hasUserInteracted && (searchTerm || filterPreset) && !isCurrentVoiceInFilteredList) {
         console.log('Auto-selecting top voice from filtered list:', topVoice.name);
         onVoiceChange(topVoice.name);
         // Also call onVoiceInfoChange to ensure parent component gets full voice info
@@ -186,7 +189,10 @@ export function VoiceSelector({
           All
         </button>
         <button
-          onClick={() => setFilterPreset(filterPreset === 'HD' ? '' : 'HD')}
+          onClick={() => {
+            setFilterPreset(filterPreset === 'HD' ? '' : 'HD');
+            setHasUserInteracted(true);
+          }}
           className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
             filterPreset === 'HD'
               ? 'bg-blue-600 text-white'
@@ -196,7 +202,10 @@ export function VoiceSelector({
           HD
         </button>
         <button
-          onClick={() => setFilterPreset(filterPreset === 'MAI' ? '' : 'MAI')}
+          onClick={() => {
+            setFilterPreset(filterPreset === 'MAI' ? '' : 'MAI');
+            setHasUserInteracted(true);
+          }}
           className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
             filterPreset === 'MAI'
               ? 'bg-blue-600 text-white'
@@ -206,7 +215,10 @@ export function VoiceSelector({
           MAI
         </button>
         <button
-          onClick={() => setFilterPreset(filterPreset === 'OpenAI' ? '' : 'OpenAI')}
+          onClick={() => {
+            setFilterPreset(filterPreset === 'OpenAI' ? '' : 'OpenAI');
+            setHasUserInteracted(true);
+          }}
           className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
             filterPreset === 'OpenAI'
               ? 'bg-blue-600 text-white'
@@ -216,7 +228,10 @@ export function VoiceSelector({
           OpenAI
         </button>
         <button
-          onClick={() => setFilterPreset(filterPreset === 'NonHD' ? '' : 'NonHD')}
+          onClick={() => {
+            setFilterPreset(filterPreset === 'NonHD' ? '' : 'NonHD');
+            setHasUserInteracted(true);
+          }}
           className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
             filterPreset === 'NonHD'
               ? 'bg-blue-600 text-white'
@@ -226,7 +241,10 @@ export function VoiceSelector({
           Non-HD
         </button>
         <button
-          onClick={() => setFilterPreset(filterPreset === 'MyVoices' ? '' : 'MyVoices')}
+          onClick={() => {
+            setFilterPreset(filterPreset === 'MyVoices' ? '' : 'MyVoices');
+            setHasUserInteracted(true);
+          }}
           className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
             filterPreset === 'MyVoices'
               ? 'bg-emerald-600 text-white'
@@ -244,6 +262,7 @@ export function VoiceSelector({
         onChange={(e) => {
           console.log('Search term changed to:', e.target.value);
           setSearchTerm(e.target.value);
+          setHasUserInteracted(true);
         }}
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       />
