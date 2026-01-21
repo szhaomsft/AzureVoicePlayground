@@ -1,4 +1,4 @@
-// Podcast script presets for Podcast Generator
+// Podcast script presets for Multi Talker
 // Format: Each line is "speaker: text"
 
 export interface PodcastPreset {

@@ -67,7 +67,7 @@ export function MultiTalkerPlayground({
       region: settings.region,
     });
 
-  // Podcast Generator only works in these regions
+  // Multi Talker only works in these regions
   const SUPPORTED_REGIONS = ['eastus', 'eastus2', 'westeurope', 'southeastasia', 'swedencentral', 'centralindia'];
   const isRegionSupported = SUPPORTED_REGIONS.includes(settings.region.toLowerCase());
 
@@ -251,7 +251,7 @@ export function MultiTalkerPlayground({
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 shadow-md">
-          <h1 className="text-3xl font-bold">Podcast Generator</h1>
+          <h1 className="text-3xl font-bold">Multi Talker</h1>
           <p className="text-purple-100 mt-1">
             Create multi-speaker dialog content with AI-powered voices
           </p>
@@ -269,7 +269,7 @@ export function MultiTalkerPlayground({
                 <div>
                   <h3 className="font-semibold text-amber-800">Region Not Supported</h3>
                   <p className="text-sm text-amber-700 mt-1">
-                    Podcast Generator is currently only available in the following regions:
+                    Multi Talker is currently only available in the following regions:
                   </p>
                   <ul className="text-sm text-amber-700 mt-2 list-disc list-inside">
                     <li><strong>East US</strong> (eastus)</li>
@@ -589,7 +589,7 @@ export function MultiTalkerPlayground({
         {/* Footer */}
         <div className="bg-gray-50 border-t border-gray-200 px-6 py-3 flex items-center justify-between">
           <p className="text-xs text-gray-600">
-            Podcast Generator uses Azure Speech Service with mstts:dialog SSML elements.
+            Multi Talker uses Azure Speech Service with mstts:dialog SSML elements.
           </p>
           <FeedbackButton
             text={text}

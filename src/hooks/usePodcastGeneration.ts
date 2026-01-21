@@ -1,0 +1,197 @@
+import { useState, useCallback, useRef } from 'react';
+import {
+  Generation,
+  GenerationProgress,
+  GenerationStatus,
+  PodcastConfig,
+  PodcastContentSource,
+  PodcastApiConfig,
+  PodcastHistoryEntry,
+} from '../types/podcast';
+import {
+  createGeneration,
+  waitForGenerationComplete,
+  prepareContentPayload,
+  createGenerationId,
+} from '../lib/podcast/podcastClient';
+
+export interface UsePodcastGenerationOptions {
+  apiKey: string;
+  region: string;
+}
+
+export function usePodcastGeneration({ apiKey, region }: UsePodcastGenerationOptions) {
+  const [status, setStatus] = useState<GenerationStatus>('idle');
+  const [progress, setProgress] = useState<GenerationProgress>({
+    step: 0,
+    totalSteps: 5,
+    message: '',
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [currentGeneration, setCurrentGeneration] = useState<Generation | null>(null);
+
+  const cancelRef = useRef(false);
+
+  const getApiConfig = useCallback((): PodcastApiConfig => ({
+    region,
+    apiKey,
+  }), [region, apiKey]);
+
+  const startGeneration = useCallback(async (
+    contentSource: PodcastContentSource,
+    config: PodcastConfig,
+    voiceName?: string,
+    speakerNames?: string,
+    addToHistory?: (entry: Omit<PodcastHistoryEntry, 'id'>) => void
+  ) => {
+    try {
+      // Reset state
+      setError(null);
+      setStatus('creating');
+      setProgress({ step: 1, totalSteps: 5, message: 'Preparing content...' });
+      cancelRef.current = false;
+
+      console.log('Starting podcast generation with config:', config);
+
+      const apiConfig = getApiConfig();
+      const generationId = createGenerationId();
+
+      // Step 1: Prepare content payload
+      const content = await prepareContentPayload(contentSource);
+
+      if (cancelRef.current) {
+        setStatus('cancelled');
+        return;
+      }
+
+      // Step 2: Create generation
+      setProgress({ step: 2, totalSteps: 5, message: 'Creating generation...' });
+      setStatus('creating');
+
+      const createParams = {
+        generationId,
+        locale: config.locale,
+        host: config.hostType,
+        displayName: `Podcast ${new Date().toLocaleString()}`,
+        content,
+        scriptGeneration: {
+          style: config.style,
+          length: config.length,
+          additionalInstructions: config.additionalInstructions || undefined,
+        },
+        tts: config.hostType === 'TwoHosts' && voiceName && speakerNames
+          ? {
+              voiceName,
+              multiTalkerVoiceSpeakerNames: speakerNames,
+            }
+          : undefined,
+      };
+
+      console.log('Creating generation with params:', createParams);
+
+      const { generation } = await createGeneration(apiConfig, createParams);
+
+      if (cancelRef.current) {
+        setStatus('cancelled');
+        return;
+      }
+
+      // Step 3-4: Poll for completion
+      setProgress({ step: 3, totalSteps: 5, message: 'Generating script...' });
+      setStatus('processing');
+
+      const completedGeneration = await waitForGenerationComplete(
+        apiConfig,
+        generationId,
+        (gen) => {
+          if (cancelRef.current) {
+            throw new Error('Cancelled by user');
+          }
+
+          // Update progress based on generation status
+          if (gen.status === 'Running') {
+            setProgress({ step: 4, totalSteps: 5, message: 'Converting to audio...' });
+          }
+
+          setCurrentGeneration(gen);
+        },
+        30 * 60 * 1000, // 30 min max
+        3000 // 3 second intervals
+      );
+
+      if (cancelRef.current) {
+        setStatus('cancelled');
+        return;
+      }
+
+      // Step 5: Complete
+      setProgress({ step: 5, totalSteps: 5, message: 'Completed!' });
+      setStatus('completed');
+      setCurrentGeneration(completedGeneration);
+
+      // Add to history if callback provided
+      if (addToHistory && completedGeneration.output?.audioFileUrl) {
+        const contentPreview = contentSource.type === 'text'
+          ? contentSource.text?.substring(0, 100) || ''
+          : contentSource.type === 'url'
+            ? contentSource.url || ''
+            : contentSource.file?.name || '';
+
+        addToHistory({
+          generationId: completedGeneration.id,
+          timestamp: Date.now(),
+          displayName: completedGeneration.displayName || 'Podcast',
+          locale: completedGeneration.locale,
+          hostType: completedGeneration.host,
+          voiceName,
+          style: config.style,
+          length: config.length,
+          status: completedGeneration.status,
+          audioUrl: completedGeneration.output.audioFileUrl,
+          contentPreview,
+        });
+      }
+
+      return completedGeneration;
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      console.error('Podcast generation failed:', err);
+
+      if (errorMessage.includes('Cancelled')) {
+        setStatus('cancelled');
+        setError('Generation cancelled');
+      } else {
+        setStatus('error');
+        setError(errorMessage);
+      }
+
+      throw err;
+    }
+  }, [getApiConfig]);
+
+  const cancelGeneration = useCallback(() => {
+    console.log('Cancelling podcast generation');
+    cancelRef.current = true;
+    setStatus('cancelled');
+    setProgress({ step: 0, totalSteps: 5, message: 'Cancelled' });
+  }, []);
+
+  const reset = useCallback(() => {
+    setStatus('idle');
+    setProgress({ step: 0, totalSteps: 5, message: '' });
+    setError(null);
+    setCurrentGeneration(null);
+    cancelRef.current = false;
+  }, []);
+
+  return {
+    status,
+    progress,
+    error,
+    currentGeneration,
+    startGeneration,
+    cancelGeneration,
+    reset,
+  };
+}

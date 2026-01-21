@@ -4,6 +4,7 @@ import { useHistoryStorage } from './hooks/useHistoryStorage';
 import { useConversionHistoryStorage } from './hooks/useConversionHistoryStorage';
 import { useMultiTalkerHistoryStorage } from './hooks/useMultiTalkerHistoryStorage';
 import { useSTTHistoryStorage } from './hooks/useSTTHistoryStorage';
+import { usePodcastHistoryStorage } from './hooks/usePodcastHistoryStorage';
 import { PlaygroundMode } from './types/azure';
 import { NavigationSidebar } from './components/NavigationSidebar';
 import { TextToSpeechPlayground } from './components/TextToSpeechPlayground';
@@ -14,6 +15,7 @@ import { VoiceLiveTranslatorPlayground } from './components/VoiceLiveTranslatorP
 import { VoiceLiveChatPlayground } from './components/VoiceLiveChatPlayground';
 import { VoiceCreationPlayground } from './components/VoiceCreationPlayground';
 import { VideoTranslationPlayground } from './components/VideoTranslationPlayground';
+import { PodcastAgentPlayground } from './components/PodcastAgentPlayground';
 
 // Valid playground modes for URL hash routing
 const VALID_MODES: PlaygroundMode[] = [
@@ -25,6 +27,7 @@ const VALID_MODES: PlaygroundMode[] = [
   'video-translation',
   'voice-live-chat',
   'voice-live-translator',
+  'podcast-agent',
 ];
 
 // Get initial playground mode from URL hash
@@ -62,6 +65,7 @@ function App() {
   const conversionHistory = useConversionHistoryStorage();
   const multiTalkerHistory = useMultiTalkerHistoryStorage();
   const sttHistory = useSTTHistoryStorage();
+  const podcastHistory = usePodcastHistoryStorage();
 
   const renderPlayground = () => {
     switch (activePlayground) {
@@ -138,6 +142,17 @@ function App() {
           <VoiceLiveTranslatorPlayground
             endpoint={settings.voiceLiveEndpoint || ''}
             apiKey={settings.voiceLiveApiKey || ''}
+          />
+        );
+      case 'podcast-agent':
+        return (
+          <PodcastAgentPlayground
+            settings={settings}
+            isConfigured={isConfigured}
+            history={podcastHistory.history}
+            addToHistory={podcastHistory.addToHistory}
+            removeFromHistory={podcastHistory.removeFromHistory}
+            clearHistory={podcastHistory.clearHistory}
           />
         );
       default:

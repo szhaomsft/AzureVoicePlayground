@@ -1,0 +1,727 @@
+import { useState, useEffect, useCallback } from 'react';
+import { AzureSettings } from '../types/azure';
+import { PodcastContentUploader } from './PodcastContentUploader';
+import { PodcastVoicePairSelector, getVoiceDetails } from './PodcastVoicePairSelector';
+import { usePodcastGeneration } from '../hooks/usePodcastGeneration';
+import {
+  PodcastContentSource,
+  PodcastConfig,
+  HostType,
+  PodcastStyle,
+  PodcastLength,
+  PodcastHistoryEntry,
+  GenerationStatus,
+} from '../types/podcast';
+
+interface VoicePair {
+  female: string;
+  male: string;
+  display: string;
+}
+
+interface PodcastAgentPlaygroundProps {
+  settings: AzureSettings;
+  isConfigured: boolean;
+  history: PodcastHistoryEntry[];
+  addToHistory: (entry: Omit<PodcastHistoryEntry, 'id'>) => void;
+  removeFromHistory: (id: string) => void;
+  clearHistory: () => void;
+}
+
+// Podcast Agent supported regions (similar to Video Translation)
+const SUPPORTED_REGIONS = [
+  'eastus',
+  'westeurope',
+  'southeastasia',
+];
+
+// Common locales for podcast generation
+const PODCAST_LOCALES = [
+  { code: 'en-US', label: 'English (US)' },
+  { code: 'zh-CN', label: 'Chinese (Simplified)' },
+  { code: 'ja-JP', label: 'Japanese' },
+  { code: 'ko-KR', label: 'Korean' },
+  { code: 'es-ES', label: 'Spanish (Spain)' },
+  { code: 'fr-FR', label: 'French (France)' },
+  { code: 'de-DE', label: 'German' },
+  { code: 'it-IT', label: 'Italian' },
+  { code: 'pt-BR', label: 'Portuguese (Brazil)' },
+];
+
+const HOST_TYPES: { value: HostType; label: string; description: string }[] = [
+  {
+    value: 'OneHost',
+    label: 'Single Host',
+    description: 'One narrator guides the podcast',
+  },
+  {
+    value: 'TwoHosts',
+    label: 'Two Hosts',
+    description: 'Conversational format with two speakers',
+  },
+];
+
+const STYLES: { value: PodcastStyle; label: string }[] = [
+  { value: 'Default', label: 'Default' },
+  { value: 'Professional', label: 'Professional' },
+  { value: 'Casual', label: 'Casual' },
+];
+
+const LENGTHS: { value: PodcastLength; label: string; description: string }[] = [
+  { value: 'VeryShort', label: 'Very Short', description: '~1 min' },
+  { value: 'Short', label: 'Short', description: '~3 min' },
+  { value: 'Medium', label: 'Medium', description: '~5 min' },
+  { value: 'Long', label: 'Long', description: '~10 min' },
+  { value: 'VeryLong', label: 'Very Long', description: '~15+ min' },
+];
+
+const CONFIG_STORAGE_KEY = 'podcast-agent-config';
+
+interface StoredConfig {
+  locale: string;
+  hostType: HostType;
+  style: PodcastStyle;
+  length: PodcastLength;
+  additionalInstructions: string;
+  voicePair?: VoicePair;
+}
+
+function loadConfig(): Partial<StoredConfig> {
+  try {
+    const stored = localStorage.getItem(CONFIG_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveConfig(config: Partial<StoredConfig>): void {
+  localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
+}
+
+export function PodcastAgentPlayground({
+  settings,
+  isConfigured,
+  history,
+  addToHistory,
+  removeFromHistory,
+  clearHistory,
+}: PodcastAgentPlaygroundProps) {
+  // Load saved config
+  const savedConfig = loadConfig();
+
+  // Content source state
+  const [contentSource, setContentSource] = useState<PodcastContentSource | null>(null);
+
+  // Config state
+  const [locale, setLocale] = useState(savedConfig.locale || 'en-US');
+  const [hostType, setHostType] = useState<HostType>(savedConfig.hostType || 'TwoHosts');
+  const [selectedVoicePair, setSelectedVoicePair] = useState<VoicePair | null>(
+    savedConfig.voicePair || null
+  );
+  const [style, setStyle] = useState<PodcastStyle>(savedConfig.style || 'Default');
+  const [length, setLength] = useState<PodcastLength>(savedConfig.length || 'Medium');
+  const [additionalInstructions, setAdditionalInstructions] = useState(
+    savedConfig.additionalInstructions || ''
+  );
+
+  // UI state
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Podcast generation hook
+  const {
+    status,
+    progress,
+    error,
+    currentGeneration,
+    startGeneration,
+    cancelGeneration,
+    reset,
+  } = usePodcastGeneration({
+    apiKey: settings.apiKey,
+    region: settings.region,
+  });
+
+  // Save config when settings change
+  useEffect(() => {
+    saveConfig({
+      locale,
+      hostType,
+      style,
+      length,
+      additionalInstructions,
+      voicePair: selectedVoicePair || undefined,
+    });
+  }, [locale, hostType, style, length, additionalInstructions, selectedVoicePair]);
+
+  // Reset voice pair when locale or host type changes
+  useEffect(() => {
+    setSelectedVoicePair(null);
+  }, [locale, hostType]);
+
+  const handleStartGeneration = useCallback(async () => {
+    if (!contentSource) return;
+
+    const config: PodcastConfig = {
+      locale,
+      hostType,
+      style,
+      length,
+      additionalInstructions: additionalInstructions.trim() || undefined,
+    };
+
+    const voiceDetails = hostType === 'TwoHosts' ? getVoiceDetails(selectedVoicePair, locale) : null;
+    const voiceName = voiceDetails?.voiceName;
+    const speakerNames = voiceDetails?.speakerNames;
+
+    await startGeneration(contentSource, config, voiceName, speakerNames, addToHistory);
+  }, [contentSource, locale, hostType, style, length, additionalInstructions, selectedVoicePair, startGeneration, addToHistory]);
+
+  const handleReset = useCallback(() => {
+    reset();
+    setContentSource(null);
+  }, [reset]);
+
+  const handlePlayFromHistory = useCallback((entry: PodcastHistoryEntry) => {
+    // Scroll to results section and play audio
+    if (entry.audioUrl) {
+      window.open(entry.audioUrl, '_blank');
+    }
+  }, []);
+
+  const getStatusColor = (s: GenerationStatus): string => {
+    switch (s) {
+      case 'completed':
+        return 'text-green-600';
+      case 'error':
+        return 'text-red-600';
+      case 'cancelled':
+        return 'text-yellow-600';
+      default:
+        return 'text-blue-600';
+    }
+  };
+
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  const isProcessing = ['uploading', 'creating', 'processing'].includes(status);
+  const isRegionSupported = SUPPORTED_REGIONS.includes(settings.region.toLowerCase());
+  const canStart =
+    isConfigured &&
+    isRegionSupported &&
+    !isProcessing &&
+    contentSource !== null &&
+    (hostType === 'OneHost' || (hostType === 'TwoHosts' && selectedVoicePair !== null));
+
+  if (!isConfigured) {
+    return (
+      <div className="p-8">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+          <h3 className="text-lg font-medium text-yellow-800 mb-2">Configuration Required</h3>
+          <p className="text-yellow-700">
+            Please configure your Azure Speech API key and region in the settings panel to use Podcast
+            Agent.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6">
+        <h1 className="text-2xl font-bold">Podcast Agent</h1>
+        <p className="text-purple-100 mt-1">
+          Generate AI podcasts from your content with natural conversational speech
+        </p>
+      </div>
+
+      {/* Main Content - Two Panel Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Content Source & Results */}
+        <div className="flex-1 overflow-auto p-6">
+          <div className="space-y-6">
+            {/* Region Not Supported Message */}
+            {isConfigured && !isRegionSupported && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <svg
+                    className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <div>
+                    <h3 className="font-semibold text-amber-800">Region Not Supported</h3>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Podcast Agent is currently only available in the following regions:
+                    </p>
+                    <ul className="text-sm text-amber-700 mt-2 list-disc list-inside">
+                      <li>
+                        <strong>East US</strong> (eastus)
+                      </li>
+                      <li>
+                        <strong>West Europe</strong> (westeurope)
+                      </li>
+                      <li>
+                        <strong>Southeast Asia</strong> (southeastasia)
+                      </li>
+                    </ul>
+                    <p className="text-sm text-amber-700 mt-2">
+                      Your current region: <strong>{settings.region}</strong>. Please change your region
+                      in the sidebar settings.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Content Source */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Content Source</h2>
+              <PodcastContentUploader
+                onContentChange={setContentSource}
+                disabled={isProcessing}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3">
+              <button
+                onClick={handleStartGeneration}
+                disabled={!canStart}
+                className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center justify-center space-x-2"
+              >
+                {isProcessing ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span>Generate Podcast</span>
+                  </>
+                )}
+              </button>
+
+              {isProcessing && (
+                <button
+                  onClick={cancelGeneration}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium"
+                >
+                  Cancel
+                </button>
+              )}
+
+              {status !== 'idle' && !isProcessing && (
+                <button
+                  onClick={handleReset}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            {/* Progress Panel */}
+            {isProcessing && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3 mb-3">
+                  <svg
+                    className="animate-spin h-5 w-5 text-blue-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium text-blue-900">{progress.message}</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(progress.step / progress.totalSteps) * 100}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-blue-700">
+                  Step {progress.step} of {progress.totalSteps}
+                </div>
+              </div>
+            )}
+
+            {/* Error Panel */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg
+                    className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div>
+                    <h3 className="font-medium text-red-800">Generation Failed</h3>
+                    <p className="text-sm text-red-700 mt-1">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Results Panel */}
+            {status === 'completed' && currentGeneration?.output?.audioFileUrl && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-medium text-green-900 mb-3">Podcast Generated Successfully!</h3>
+                <div className="space-y-3">
+                  <audio controls className="w-full" src={currentGeneration.output.audioFileUrl}>
+                    Your browser does not support the audio element.
+                  </audio>
+                  <a
+                    href={currentGeneration.output.audioFileUrl}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                    <span>Download Audio</span>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel - Settings */}
+        <div className="w-96 border-l border-gray-200 overflow-auto p-6">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Podcast Configuration</h2>
+            </div>
+
+            {/* Locale */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+              <select
+                value={locale}
+                onChange={(e) => setLocale(e.target.value)}
+                disabled={isProcessing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                {PODCAST_LOCALES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Host Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Host Type</label>
+              <div className="space-y-2">
+                {HOST_TYPES.map((type) => (
+                  <label
+                    key={type.value}
+                    className={`flex items-start p-3 border rounded-md cursor-pointer transition-colors ${
+                      hostType === type.value
+                        ? 'border-purple-600 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300'
+                    } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      value={type.value}
+                      checked={hostType === type.value}
+                      onChange={(e) => setHostType(e.target.value as HostType)}
+                      disabled={isProcessing}
+                      className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    />
+                    <div className="ml-3">
+                      <div className="text-sm font-medium text-gray-900">{type.label}</div>
+                      <div className="text-xs text-gray-500">{type.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Voice Pair Selector (only for TwoHosts) */}
+            {hostType === 'TwoHosts' && (
+              <PodcastVoicePairSelector
+                locale={locale}
+                selectedPair={selectedVoicePair}
+                onPairChange={setSelectedVoicePair}
+                disabled={isProcessing}
+              />
+            )}
+
+            {/* Style */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Style</label>
+              <select
+                value={style}
+                onChange={(e) => setStyle(e.target.value as PodcastStyle)}
+                disabled={isProcessing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                {STYLES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Length */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Length</label>
+              <select
+                value={length}
+                onChange={(e) => setLength(e.target.value as PodcastLength)}
+                disabled={isProcessing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                {LENGTHS.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label} {l.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Additional Instructions */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Additional Instructions
+                <span className="text-gray-400 font-normal ml-1">(optional)</span>
+              </label>
+              <textarea
+                value={additionalInstructions}
+                onChange={(e) => setAdditionalInstructions(e.target.value)}
+                disabled={isProcessing}
+                placeholder="e.g., Focus on technical details, use casual tone, include examples..."
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+              />
+              <div className="mt-1 text-xs text-gray-500">
+                {additionalInstructions.length} / 1000 characters
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* History Panel */}
+      <div className="border-t border-gray-200">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full px-6 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center space-x-2">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="font-medium text-gray-700">Generation History</span>
+            <span className="text-xs text-gray-500">({history.length})</span>
+          </div>
+          <svg
+            className={`w-5 h-5 text-gray-400 transform transition-transform ${
+              showHistory ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showHistory && (
+          <div className="max-h-96 overflow-auto bg-white">
+            {history.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <p>No podcast generations yet</p>
+                <p className="text-sm mt-1">Your generated podcasts will appear here</p>
+              </div>
+            ) : (
+              <div>
+                <div className="px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">
+                    {history.length} generation{history.length !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={clearHistory}
+                    className="text-xs text-red-600 hover:text-red-800 font-medium"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="divide-y divide-gray-200">
+                  {history.map((entry) => (
+                    <div key={entry.id} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="text-sm font-medium text-gray-900">
+                              {entry.displayName}
+                            </span>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded ${
+                                entry.status === 'Succeeded'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {entry.status}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 space-y-0.5">
+                            <div>
+                              {entry.locale} • {entry.hostType} • {entry.style} • {entry.length}
+                            </div>
+                            {entry.voiceName && (
+                              <div className="truncate">Voice: {entry.voiceName}</div>
+                            )}
+                            <div>{formatTimestamp(entry.timestamp)}</div>
+                            <div className="truncate italic">"{entry.contentPreview}"</div>
+                          </div>
+                        </div>
+                        <div className="ml-3 flex space-x-2">
+                          {entry.audioUrl && (
+                            <button
+                              onClick={() => handlePlayFromHistory(entry)}
+                              className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                              title="Play"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => removeFromHistory(entry.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                            title="Remove"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

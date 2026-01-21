@@ -88,7 +88,7 @@ export function VoiceSelector({
   const isMyVoicesFilter = filterPreset === 'MyVoices';
 
   const filteredVoices = isMyVoicesFilter ? [] : voices.filter((voice) => {
-    // Exclude multi-talker voices (they belong in Podcast Generator)
+    // Exclude multi-talker voices (they belong in Multi Talker)
     if (voice.name.toLowerCase().includes('multitalker')) return false;
 
     // Apply preset filter first

@@ -44,7 +44,7 @@ export interface WordBoundary {
 
 export type SynthesisState = 'idle' | 'synthesizing' | 'playing' | 'paused' | 'error';
 
-export type PlaygroundMode = 'text-to-speech' | 'speech-to-text' | 'voice-changer' | 'multi-talker' | 'voice-creation' | 'video-translation' | 'voice-live-chat' | 'voice-live-translator';
+export type PlaygroundMode = 'text-to-speech' | 'speech-to-text' | 'voice-changer' | 'multi-talker' | 'voice-creation' | 'video-translation' | 'voice-live-chat' | 'voice-live-translator' | 'podcast-agent';
 
 export interface SynthesisResult {
   audioData?: ArrayBuffer;
