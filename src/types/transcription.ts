@@ -7,6 +7,7 @@ export interface TranscriptSegment {
   confidence: number; // 0-1
   words?: WordTiming[];
   speaker?: number; // Speaker ID for diarization
+  locale?: string; // Detected locale for this segment
 }
 
 export interface WordTiming {

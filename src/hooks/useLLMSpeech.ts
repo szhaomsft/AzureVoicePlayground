@@ -197,13 +197,17 @@ function parseTranscriptResult(apiResponse: any, language: string): FastTranscri
       // Parse speaker info if diarization is enabled
       const speaker = phrase.speaker;
 
+      // Parse locale if available
+      const locale = phrase.locale;
+
       return {
         text,
         offset,
         duration,
         confidence,
         words,
-        speaker
+        speaker,
+        locale
       };
     }).filter((seg: any) => seg.text);
   }

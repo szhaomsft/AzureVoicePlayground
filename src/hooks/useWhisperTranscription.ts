@@ -327,12 +327,16 @@ function parseWhisperTranscript(data: any, jobId: string, language: string): Whi
       confidence: word.confidence || confidence
     }));
 
+    // Extract locale from phrase or use the specified language
+    const locale = phrase.locale || language;
+
     return {
       text: nBest.display,
       offset,
       duration,
       confidence,
-      words
+      words,
+      locale
     };
   }).filter(Boolean);
 

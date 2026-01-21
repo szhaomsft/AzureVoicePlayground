@@ -116,22 +116,17 @@ export function useRealtimeSTT(settings: AzureSettings): UseRealtimeSTTReturn {
           const offset = e.result.offset / 10000; // Convert to milliseconds
           const duration = e.result.duration / 10000;
 
-          // Get detected language if auto-detect was used
-          const detectedLanguage = e.result.properties.getProperty(
-            SpeechSDK.PropertyId.SpeechServiceConnection_AutoDetectSourceLanguages
-          );
-          if (detectedLanguage) {
-            console.log(`Detected language: ${detectedLanguage}`);
-          }
-
-          // Parse detailed result for confidence and word timings
+          // Parse detailed result for confidence, word timings, and locale
           let confidence = 0.9; // Default confidence
           let words: WordTiming[] | undefined;
+          let locale: string | undefined;
 
           try {
             const detailedResult = JSON.parse(
               e.result.properties.getProperty(SpeechSDK.PropertyId.SpeechServiceResponse_JsonResult)
             );
+
+            console.log('Realtime STT Detailed Result:', detailedResult);
 
             if (detailedResult.NBest && detailedResult.NBest.length > 0) {
               const best = detailedResult.NBest[0];
@@ -147,8 +142,25 @@ export function useRealtimeSTT(settings: AzureSettings): UseRealtimeSTTReturn {
                 }));
               }
             }
+
+            // Try to get locale from detailed result
+            locale = detailedResult.PrimaryLanguage?.Language || detailedResult.Locale;
           } catch (err) {
             console.warn('Could not parse detailed result:', err);
+          }
+
+          // Fallback: Get detected language from auto-detect property
+          if (!locale) {
+            const detectedLanguage = e.result.properties.getProperty(
+              SpeechSDK.PropertyId.SpeechServiceConnection_AutoDetectSourceLanguages
+            );
+            if (detectedLanguage) {
+              console.log(`Detected language: ${detectedLanguage}`);
+              locale = detectedLanguage;
+            } else if (language !== 'auto') {
+              // Use the specified language as locale
+              locale = language;
+            }
           }
 
           const segment: TranscriptSegment = {
@@ -156,7 +168,8 @@ export function useRealtimeSTT(settings: AzureSettings): UseRealtimeSTTReturn {
             offset,
             duration,
             confidence,
-            words
+            words,
+            locale
           };
 
           setTranscript(prev => {
