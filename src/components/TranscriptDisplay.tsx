@@ -1,6 +1,6 @@
 // Transcript Display Component
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { TranscriptSegment } from '../types/transcription';
 
 interface TranscriptDisplayProps {
@@ -10,6 +10,7 @@ interface TranscriptDisplayProps {
   isStreaming: boolean;
   showTimestamps?: boolean;
   showConfidence?: boolean;
+  audioSource?: File | Blob | null;
 }
 
 export function TranscriptDisplay({
@@ -18,8 +19,134 @@ export function TranscriptDisplay({
   interimText,
   isStreaming,
   showTimestamps = true,
-  showConfidence = true
+  showConfidence = true,
+  audioSource
 }: TranscriptDisplayProps) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playingSegment, setPlayingSegment] = useState<number | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  // Create audio URL when audioSource changes
+  React.useEffect(() => {
+    // Clean up any existing playback
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlayingSegment(null);
+    }
+
+    if (audioSource) {
+      const url = URL.createObjectURL(audioSource);
+      setAudioUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+        if (cleanupRef.current) {
+          cleanupRef.current();
+          cleanupRef.current = null;
+        }
+      };
+    } else {
+      setAudioUrl(null);
+    }
+  }, [audioSource]);
+
+  const handleSegmentClick = async (segment: TranscriptSegment, index: number) => {
+    if (!audioRef.current || !audioUrl) {
+      console.log('No audio ref or URL available');
+      return;
+    }
+
+    const audio = audioRef.current;
+    const startTime = segment.offset / 1000; // Convert ms to seconds
+    const endTime = (segment.offset + segment.duration) / 1000;
+
+    console.log('Playing segment:', index, 'from', startTime, 'to', endTime);
+
+    // Clean up previous event listeners
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
+    // Stop any current playback
+    try {
+      audio.pause();
+    } catch (e) {
+      // Ignore if already paused
+    }
+    setPlayingSegment(null);
+
+    try {
+      // Always set the source to ensure it's loaded
+      audio.src = audioUrl;
+
+      // Wait for the audio to be loaded enough to play
+      if (audio.readyState < 2) {
+        console.log('Waiting for audio to load...');
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Timeout loading audio')), 5000);
+          const onLoaded = () => {
+            clearTimeout(timeout);
+            resolve(true);
+          };
+          audio.addEventListener('loadeddata', onLoaded, { once: true });
+          audio.addEventListener('error', (e) => {
+            clearTimeout(timeout);
+            reject(e);
+          }, { once: true });
+        });
+      }
+
+      // Set playback position
+      console.log('Setting currentTime to', startTime);
+      audio.currentTime = startTime;
+
+      // Play the audio
+      console.log('Playing audio...');
+      const playPromise = audio.play();
+
+      if (playPromise !== undefined) {
+        await playPromise;
+        console.log('Audio playing successfully');
+      }
+
+      setPlayingSegment(index);
+
+      // Create event handler for stopping at segment end
+      const handleTimeUpdate = () => {
+        if (audio.currentTime >= endTime) {
+          console.log('Reached end of segment, stopping');
+          audio.pause();
+          setPlayingSegment(null);
+        }
+      };
+
+      // Create pause handler
+      const handlePauseEnd = () => {
+        console.log('Audio paused or ended');
+        setPlayingSegment(null);
+      };
+
+      // Add event listeners
+      audio.addEventListener('timeupdate', handleTimeUpdate);
+      audio.addEventListener('pause', handlePauseEnd);
+      audio.addEventListener('ended', handlePauseEnd);
+
+      // Store cleanup function
+      cleanupRef.current = () => {
+        audio.removeEventListener('timeupdate', handleTimeUpdate);
+        audio.removeEventListener('pause', handlePauseEnd);
+        audio.removeEventListener('ended', handlePauseEnd);
+      };
+    } catch (error) {
+      console.error('Error playing audio segment:', error);
+      setPlayingSegment(null);
+    }
+  };
   const formatTime = (ms: number): string => {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -64,15 +191,44 @@ export function TranscriptDisplay({
           <div className="space-y-4">
             {/* Final segments */}
             {segments.map((segment, index) => (
-              <div key={index} className="border-l-2 border-blue-500 pl-3">
+              <div
+                key={index}
+                onClick={() => audioSource && handleSegmentClick(segment, index)}
+                className={`border-l-2 pl-3 transition-all ${
+                  playingSegment === index
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-blue-500'
+                } ${audioSource ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                title={audioSource ? 'Click to play this segment' : ''}
+              >
                 {showTimestamps && (
                   <div className="flex items-center gap-3 mb-1">
+                    {/* Speaker Label */}
+                    {segment.speaker !== undefined && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        Speaker {segment.speaker}
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500 font-mono">
                       {formatTime(segment.offset)}
                     </span>
                     {showConfidence && (
                       <span className={`text-xs font-medium ${getConfidenceColor(segment.confidence)}`}>
                         {getConfidenceLabel(segment.confidence)} ({Math.round(segment.confidence * 100)}%)
+                      </span>
+                    )}
+                    {/* Play icon indicator */}
+                    {audioSource && (
+                      <span className="text-xs text-gray-400">
+                        {playingSegment === index ? (
+                          <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                          </svg>
+                        )}
                       </span>
                     )}
                   </div>
@@ -142,6 +298,9 @@ export function TranscriptDisplay({
           )}
         </div>
       )}
+
+      {/* Hidden audio element for playback */}
+      <audio ref={audioRef} className="hidden" />
     </div>
   );
 }

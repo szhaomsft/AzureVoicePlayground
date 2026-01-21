@@ -7,17 +7,18 @@ import { FastTranscript, TranscriptSegment, WordTiming } from '../types/transcri
 import { STTState } from '../types/stt';
 import { convertToWav16kHz } from '../utils/audioConversion';
 
-// LLM Speech supported languages (9 languages)
+// LLM Speech supported languages (9 locales)
+// Uses full BCP-47 locale codes for consistency with other STT models
 export const LLM_SPEECH_LANGUAGES = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
-  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
-  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
-  { code: 'ko', name: 'Korean', nativeName: '한국어' },
+  { code: 'en-US', name: 'English', nativeName: 'English (United States)' },
+  { code: 'zh-CN', name: 'Chinese', nativeName: '中文 (简体)' },
+  { code: 'de-DE', name: 'German', nativeName: 'Deutsch (Deutschland)' },
+  { code: 'fr-FR', name: 'French', nativeName: 'Français (France)' },
+  { code: 'it-IT', name: 'Italian', nativeName: 'Italiano (Italia)' },
+  { code: 'ja-JP', name: 'Japanese', nativeName: '日本語 (日本)' },
+  { code: 'es-ES', name: 'Spanish', nativeName: 'Español (España)' },
+  { code: 'pt-BR', name: 'Portuguese', nativeName: 'Português (Brasil)' },
+  { code: 'ko-KR', name: 'Korean', nativeName: '한국어 (대한민국)' },
 ];
 
 export type LLMSpeechTask = 'transcribe' | 'translate';
@@ -69,6 +70,10 @@ export function useLLMSpeech(settings: AzureSettings): UseLLMSpeechReturn {
       const wavBlob = await convertToWav16kHz(audioFile);
       setProgress(30);
 
+      // Extract base language code (e.g., 'en-US' -> 'en', 'zh-CN' -> 'zh')
+      // LLM Speech API uses 2-letter language codes
+      const baseLanguageCode = language.split('-')[0];
+
       // Build the definition object for LLM Speech
       const definition: Record<string, any> = {
         enhancedMode: {
@@ -79,7 +84,9 @@ export function useLLMSpeech(settings: AzureSettings): UseLLMSpeechReturn {
 
       // Add target language for translation
       if (options.task === 'translate' && options.targetLanguage) {
-        definition.enhancedMode.targetLanguage = options.targetLanguage;
+        // Also extract base code from target language
+        const targetBaseCode = options.targetLanguage.split('-')[0];
+        definition.enhancedMode.targetLanguage = targetBaseCode;
       }
 
       // Add prompt if provided
@@ -172,17 +179,18 @@ function parseTranscriptResult(apiResponse: any, language: string): FastTranscri
   // Parse segments from phrases
   if (apiResponse.phrases && Array.isArray(apiResponse.phrases)) {
     segments = apiResponse.phrases.map((phrase: any) => {
-      const offset = parseTimestamp(phrase.offset || phrase.offsetInTicks || 0);
-      const duration = parseTimestamp(phrase.duration || phrase.durationInTicks || 0);
+      // Handle both milliseconds and ticks formats
+      const offset = phrase.offsetMilliseconds ?? parseTimestamp(phrase.offset || phrase.offsetInTicks || 0);
+      const duration = phrase.durationMilliseconds ?? parseTimestamp(phrase.duration || phrase.durationInTicks || 0);
       // Note: LLM Speech confidence is always 0
       const confidence = phrase.confidence || 0;
       const text = phrase.text || '';
 
       // Parse word-level timings if available (not available for translate task)
       const words: WordTiming[] | undefined = phrase.words?.map((word: any) => ({
-        text: word.word || word.text,
-        offset: parseTimestamp(word.offset || word.offsetInTicks || 0),
-        duration: parseTimestamp(word.duration || word.durationInTicks || 0),
+        text: word.text || word.word,
+        offset: word.offsetMilliseconds ?? parseTimestamp(word.offset || word.offsetInTicks || 0),
+        duration: word.durationMilliseconds ?? parseTimestamp(word.duration || word.durationInTicks || 0),
         confidence: word.confidence || confidence
       }));
 

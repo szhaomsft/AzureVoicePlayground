@@ -12,7 +12,7 @@ interface UseFastTranscriptionReturn {
   transcript: FastTranscript | null;
   error: string;
   progress: number;
-  transcribe: (audioFile: File | Blob, language: string) => Promise<void>;
+  transcribe: (audioFile: File | Blob, language: string, options?: { enableDiarization?: boolean; maxSpeakers?: number }) => Promise<void>;
   reset: () => void;
 }
 
@@ -25,7 +25,7 @@ export function useFastTranscription(settings: AzureSettings): UseFastTranscript
   const [error, setError] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
 
-  const transcribe = useCallback(async (audioFile: File | Blob, language: string) => {
+  const transcribe = useCallback(async (audioFile: File | Blob, language: string, options?: { enableDiarization?: boolean; maxSpeakers?: number }) => {
     try {
       setState('processing');
       setError('');
@@ -53,6 +53,19 @@ export function useFastTranscription(settings: AzureSettings): UseFastTranscript
         locales = [language];
       }
 
+      // Build definition object
+      const definition: any = {
+        locales: locales
+      };
+
+      // Add diarization if enabled
+      if (options?.enableDiarization) {
+        definition.diarization = {
+          enabled: true,
+          maxSpeakers: options.maxSpeakers || 2
+        };
+      }
+
       // Call Fast Transcription API
       const endpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15`;
 
@@ -61,9 +74,9 @@ export function useFastTranscription(settings: AzureSettings): UseFastTranscript
       // Create FormData with audio and definition
       const formData = new FormData();
       formData.append('audio', wavBlob, 'audio.wav');
-      formData.append('definition', JSON.stringify({
-        locales: locales
-      }));
+      formData.append('definition', JSON.stringify(definition));
+
+      console.log('Fast Transcription API Request:', definition);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -135,25 +148,30 @@ function parseTranscriptResult(apiResponse: any, language: string): FastTranscri
   // Parse segments from phrases (new format)
   if (apiResponse.phrases && Array.isArray(apiResponse.phrases)) {
     segments = apiResponse.phrases.map((phrase: any) => {
-      const offset = parseTimestamp(phrase.offset || phrase.offsetInTicks || 0);
-      const duration = parseTimestamp(phrase.duration || phrase.durationInTicks || 0);
+      // Handle both milliseconds and ticks formats
+      const offset = phrase.offsetMilliseconds ?? parseTimestamp(phrase.offset || phrase.offsetInTicks || 0);
+      const duration = phrase.durationMilliseconds ?? parseTimestamp(phrase.duration || phrase.durationInTicks || 0);
       const confidence = phrase.confidence || phrase.nBest?.[0]?.confidence || 0.9;
       const text = phrase.text || phrase.nBest?.[0]?.display || '';
 
       // Parse word-level timings if available
       const words: WordTiming[] | undefined = phrase.words?.map((word: any) => ({
-        text: word.word || word.text,
-        offset: parseTimestamp(word.offset || word.offsetInTicks || 0),
-        duration: parseTimestamp(word.duration || word.durationInTicks || 0),
+        text: word.text || word.word,
+        offset: word.offsetMilliseconds ?? parseTimestamp(word.offset || word.offsetInTicks || 0),
+        duration: word.durationMilliseconds ?? parseTimestamp(word.duration || word.durationInTicks || 0),
         confidence: word.confidence || confidence
       }));
+
+      // Parse speaker info if diarization is enabled
+      const speaker = phrase.speaker;
 
       return {
         text,
         offset,
         duration,
         confidence,
-        words
+        words,
+        speaker
       };
     }).filter((seg: any) => seg.text);
   }

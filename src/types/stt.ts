@@ -9,6 +9,8 @@ export interface STTSettings {
   language: string; // 'auto' or language code (e.g., 'en-US')
   enableWordTimings: boolean;
   enableProfanityFilter: boolean;
+  enableDiarization: boolean;
+  maxSpeakers: number;
 }
 
 export interface STTHistoryEntry {

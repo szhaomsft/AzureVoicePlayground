@@ -39,6 +39,8 @@ export function SpeechToTextPlayground({
   const [audioSource, setAudioSource] = useState<File | Blob | null>(null);
   const [audioFileName, setAudioFileName] = useState<string>('');
   const [isUsingRecorder, setIsUsingRecorder] = useState<boolean>(false);
+  const [enableDiarization, setEnableDiarization] = useState<boolean>(false);
+  const [maxSpeakers, setMaxSpeakers] = useState<number>(2);
 
   // Hooks for each STT model
   const realtimeSTT = useRealtimeSTT(settings);
@@ -140,9 +142,15 @@ export function SpeechToTextPlayground({
       if (selectedModel === 'realtime') {
         await realtimeSTT.startRecognition(audioSource, selectedLanguage);
       } else if (selectedModel === 'fast-transcription') {
-        await fastTranscription.transcribe(audioSource, selectedLanguage);
+        await fastTranscription.transcribe(audioSource, selectedLanguage, {
+          enableDiarization,
+          maxSpeakers
+        });
       } else if (selectedModel === 'llm-speech') {
-        await llmSpeech.transcribe(audioSource, selectedLanguage);
+        await llmSpeech.transcribe(audioSource, selectedLanguage, {
+          enableDiarization,
+          maxSpeakers
+        });
       } else if (selectedModel === 'whisper') {
         await whisperTranscription.transcribe(audioSource, selectedLanguage);
       }
@@ -306,6 +314,7 @@ export function SpeechToTextPlayground({
               fullText={displayData.fullText}
               interimText={displayData.interimText}
               isStreaming={displayData.isStreaming}
+              audioSource={audioSource}
             />
 
             {/* Export Options */}
@@ -337,6 +346,55 @@ export function SpeechToTextPlayground({
               onLanguageChange={setSelectedLanguage}
               selectedModel={selectedModel}
             />
+
+            {/* Diarization Settings (Fast Transcription & LLM Speech only) */}
+            {(selectedModel === 'fast-transcription' || selectedModel === 'llm-speech') && (
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Speaker Diarization
+                </label>
+
+                {/* Enable Diarization Checkbox */}
+                <div className="flex items-start">
+                  <input
+                    type="checkbox"
+                    id="enableDiarization"
+                    checked={enableDiarization}
+                    onChange={(e) => setEnableDiarization(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="enableDiarization" className="ml-2 block text-sm text-gray-700">
+                    Identify different speakers in the audio
+                  </label>
+                </div>
+
+                {/* Max Speakers Selector */}
+                {enableDiarization && (
+                  <div className="ml-6 space-y-2">
+                    <label htmlFor="maxSpeakers" className="block text-sm text-gray-700">
+                      Maximum speakers
+                    </label>
+                    <select
+                      id="maxSpeakers"
+                      value={maxSpeakers}
+                      onChange={(e) => setMaxSpeakers(parseInt(e.target.value))}
+                      className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value={2}>2 speakers</option>
+                      <option value={3}>3 speakers</option>
+                      <option value={4}>4 speakers</option>
+                      <option value={5}>5 speakers</option>
+                      <option value={6}>6 speakers</option>
+                      <option value={8}>8 speakers</option>
+                      <option value={10}>10 speakers</option>
+                    </select>
+                    <p className="text-xs text-gray-500">
+                      Set the maximum number of speakers expected in the audio
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer */}

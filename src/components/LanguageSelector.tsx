@@ -70,7 +70,7 @@ export function LanguageSelector({ selectedLanguage, onLanguageChange, selectedM
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           ) : (
-            <span className="text-sm text-gray-500">{selectedLang?.region}</span>
+            <span className="text-sm text-gray-500 font-mono">{selectedLang?.code}</span>
           )}
           <span className="text-gray-900">{selectedLang?.nativeName || 'Select language'}</span>
         </div>
@@ -119,12 +119,12 @@ export function LanguageSelector({ selectedLanguage, onLanguageChange, selectedM
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                           </svg>
                         ) : (
-                          <span className="text-xs text-gray-500 font-mono w-8">{lang.region}</span>
+                          <span className="text-xs text-gray-500 font-mono w-16">{lang.code}</span>
                         )}
                         <span className="text-sm text-gray-900">{lang.nativeName}</span>
                       </div>
                       {lang.code !== 'auto' && lang.name !== lang.nativeName && (
-                        <div className="text-xs text-gray-500 ml-10">{lang.name}</div>
+                        <div className="text-xs text-gray-500 ml-[72px]">{lang.name}</div>
                       )}
                     </div>
                     {selectedLanguage === lang.code && (
