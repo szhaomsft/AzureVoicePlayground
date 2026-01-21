@@ -8,6 +8,7 @@ import { FeedbackButton } from './FeedbackButton';
 import { getAudioDuration } from '../utils/audioUtils';
 import { PODCAST_PRESETS, getBestPresetForLocale, adaptPresetToSpeakers } from '../utils/podcastPresets';
 import { generatePodcastScript, AzureOpenAIConfig } from '../utils/azureOpenAI';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 interface MultiTalkerPlaygroundProps {
   settings: AzureSettings;
@@ -35,6 +36,8 @@ export function MultiTalkerPlayground({
   removeFromHistory,
   clearHistory,
 }: MultiTalkerPlaygroundProps) {
+  const { enableMAIVoices } = useFeatureFlags();
+
   const [text, setText] = useState(SAMPLE_TEXT);
   const [selectedVoice, setSelectedVoice] = useState<MultiTalkerVoice | null>(null);
   const [showSSML, setShowSSML] = useState(false);
@@ -606,6 +609,7 @@ export function MultiTalkerPlayground({
             region={settings.region}
             selectedVoice={selectedVoice}
             onVoiceChange={setSelectedVoice}
+            enableMAIVoices={enableMAIVoices}
           />
         </div>
       </div>

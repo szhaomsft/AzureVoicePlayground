@@ -2,7 +2,8 @@ import { VoiceInfo } from '../types/azure';
 
 export async function fetchVoiceList(
   apiKey: string,
-  region: string
+  region: string,
+  enableMAIVoices: boolean = false
 ): Promise<VoiceInfo[]> {
   try {
     // Mask API key for display (show first 4 and last 4 characters)
@@ -72,7 +73,7 @@ export async function fetchVoiceList(
     });
 
     // Add hardcoded featured voices for East US region only (not in API yet)
-    if (region.toLowerCase() === 'eastus' || region === 'East US') {
+    if (enableMAIVoices && (region.toLowerCase() === 'eastus' || region === 'East US')) {
       console.log('Adding hardcoded MAI voices for East US region');
 
       voices.unshift(

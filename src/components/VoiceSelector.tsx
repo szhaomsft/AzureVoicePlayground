@@ -17,6 +17,7 @@ interface VoiceSelectorProps {
   selectedVoice: string;
   onVoiceChange: (voice: string) => void;
   onVoiceInfoChange?: (info: SelectedVoiceInfo) => void;
+  enableMAIVoices?: boolean;
 }
 
 export function VoiceSelector({
@@ -25,6 +26,7 @@ export function VoiceSelector({
   selectedVoice,
   onVoiceChange,
   onVoiceInfoChange,
+  enableMAIVoices = false,
 }: VoiceSelectorProps) {
   const [voices, setVoices] = useState<VoiceInfo[]>([]);
   const [personalVoices, setPersonalVoices] = useState<PersonalVoice[]>([]);
@@ -37,7 +39,7 @@ export function VoiceSelector({
     if (apiKey && region) {
       setLoading(true);
       setError('');
-      fetchVoiceList(apiKey, region)
+      fetchVoiceList(apiKey, region, enableMAIVoices)
         .then((fetchedVoices) => {
           setVoices(fetchedVoices);
 
@@ -59,7 +61,7 @@ export function VoiceSelector({
           setLoading(false);
         });
     }
-  }, [apiKey, region]);
+  }, [apiKey, region, enableMAIVoices]);
 
   // Fetch personal voices when MyVoices filter is selected
   useEffect(() => {

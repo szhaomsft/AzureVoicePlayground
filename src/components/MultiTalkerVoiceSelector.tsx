@@ -8,6 +8,7 @@ interface MultiTalkerVoiceSelectorProps {
   region: string;
   selectedVoice: MultiTalkerVoice | null;
   onVoiceChange: (voice: MultiTalkerVoice) => void;
+  enableMAIVoices?: boolean;
 }
 
 export function MultiTalkerVoiceSelector({
@@ -15,6 +16,7 @@ export function MultiTalkerVoiceSelector({
   region,
   selectedVoice,
   onVoiceChange,
+  enableMAIVoices = false,
 }: MultiTalkerVoiceSelectorProps) {
   const [allVoices, setAllVoices] = useState<VoiceInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,7 @@ export function MultiTalkerVoiceSelector({
     if (apiKey && region) {
       setLoading(true);
       setError('');
-      fetchVoiceList(apiKey, region)
+      fetchVoiceList(apiKey, region, enableMAIVoices)
         .then((fetchedVoices) => {
           setAllVoices(fetchedVoices);
           setLoading(false);
@@ -37,7 +39,7 @@ export function MultiTalkerVoiceSelector({
           setLoading(false);
         });
     }
-  }, [apiKey, region]);
+  }, [apiKey, region, enableMAIVoices]);
 
   // Filter to only multi-talker voices and convert to MultiTalkerVoice
   const multiTalkerVoices = useMemo(() => {

@@ -10,6 +10,7 @@ import { HistoryPanel } from './HistoryPanel';
 import { getAudioDuration } from '../utils/audioUtils';
 import { PERSONAL_VOICE_MODELS, PersonalVoiceModel } from '../types/personalVoice';
 import { getLanguageFromVoice } from '../utils/languagePresets';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 interface TextToSpeechPlaygroundProps {
   settings: AzureSettings;
@@ -30,6 +31,8 @@ export function TextToSpeechPlayground({
   removeFromHistory,
   clearHistory,
 }: TextToSpeechPlaygroundProps) {
+  const { enableMAIVoices } = useFeatureFlags();
+
   const [text, setText] = useState(
     'Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.'
   );
@@ -161,6 +164,7 @@ export function TextToSpeechPlayground({
             apiKey={settings.apiKey}
             region={settings.region}
             selectedVoice={settings.selectedVoice}
+            enableMAIVoices={enableMAIVoices}
             onVoiceChange={(voice) => {
               console.log('TTSPlayground: Voice changed to:', voice);
               // Only update selectedVoice here, personalVoiceInfo is updated via onVoiceInfoChange

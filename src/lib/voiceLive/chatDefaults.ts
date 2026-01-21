@@ -89,7 +89,7 @@ export const RECOGNITION_LANGUAGES = [
   { code: 'hi-IN', name: 'Hindi' },
 ];
 
-export const CHAT_VOICES = [
+const ALL_CHAT_VOICES = [
   // Azure HD Voices (DragonHD)
   { id: 'en-us-ava:DragonHDLatestNeural', name: 'Ava (DragonHD)' },
   { id: 'en-us-andrew:DragonHDLatestNeural', name: 'Andrew (DragonHD)' },
@@ -104,6 +104,9 @@ export const CHAT_VOICES = [
   { id: 'en-US-EmmaMultilingualNeural', name: 'Emma Multilingual' },
   { id: 'en-US-BrianMultilingualNeural', name: 'Brian Multilingual' },
   { id: 'zh-CN-XiaoxiaoMultilingualNeural', name: 'Xiaoxiao Multilingual' },
+  // Azure MAI Voices
+  { id: 'en-us-phoebe:MAI-Voice-1', name: 'Phoebe (MAI)' },
+  { id: 'en-us-benjamin:MAI-Voice-1', name: 'Benjamin (MAI)' },
   // OpenAI Voices
   { id: 'alloy', name: 'Alloy (OpenAI)' },
   { id: 'ash', name: 'Ash (OpenAI)' },
@@ -114,6 +117,21 @@ export const CHAT_VOICES = [
   { id: 'shimmer', name: 'Shimmer (OpenAI)' },
   { id: 'verse', name: 'Verse (OpenAI)' },
 ];
+
+/**
+ * Get filtered voice list based on feature flags
+ * @param enableMAIVoices - Whether to include MAI voices in the list
+ */
+export function getChatVoices(enableMAIVoices: boolean = false) {
+  if (enableMAIVoices) {
+    return ALL_CHAT_VOICES;
+  }
+  // Filter out MAI voices
+  return ALL_CHAT_VOICES.filter(voice => !voice.id.includes(':MAI-Voice-'));
+}
+
+// Export default list without MAI voices for backward compatibility
+export const CHAT_VOICES = getChatVoices(false);
 
 export const VIDEO_AVATARS = [
   { id: 'lisa-casual-sitting', name: 'Lisa (Casual Sitting)', character: 'lisa', style: 'casual-sitting' },

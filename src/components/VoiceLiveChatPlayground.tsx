@@ -3,7 +3,7 @@ import {
   DEFAULT_CHAT_CONFIG,
   CHAT_MODEL_OPTIONS,
   RECOGNITION_LANGUAGES,
-  CHAT_VOICES,
+  getChatVoices,
   VIDEO_AVATARS,
   PHOTO_AVATARS,
   type VoiceLiveChatConfig,
@@ -12,6 +12,7 @@ import {
 } from '../lib/voiceLive/chatDefaults';
 import { VoiceLiveChatClient, type ChatState } from '../lib/voiceLive/chatClient';
 import { ChatAudioHandler } from '../lib/voiceLive/audio/chatAudioHandler';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 interface VoiceLiveChatPlaygroundProps {
   endpoint: string;
@@ -19,6 +20,9 @@ interface VoiceLiveChatPlaygroundProps {
 }
 
 export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlaygroundProps) {
+  const { enableMAIVoices } = useFeatureFlags();
+  const chatVoices = getChatVoices(enableMAIVoices);
+
   const [config, setConfig] = useState<VoiceLiveChatConfig>(() => {
     const raw = localStorage.getItem('voicelive.chat.config');
     if (!raw) return { ...DEFAULT_CHAT_CONFIG };
@@ -456,7 +460,7 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
               disabled={isConnected}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
             >
-              {CHAT_VOICES.map((v) => (
+              {chatVoices.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
                 </option>
