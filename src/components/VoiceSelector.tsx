@@ -152,6 +152,12 @@ export function VoiceSelector({
       if ((searchTerm || filterPreset) && !isCurrentVoiceInFilteredList) {
         console.log('Auto-selecting top voice from filtered list:', topVoice.name);
         onVoiceChange(topVoice.name);
+        // Also call onVoiceInfoChange to ensure parent component gets full voice info
+        onVoiceInfoChange?.({
+          voiceName: topVoice.name,
+          isPersonalVoice: false,
+          locale: topVoice.locale,
+        });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
