@@ -483,6 +483,41 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
             </div>
           )}
 
+          {/* Function Calling */}
+          <div className="border-t border-gray-200 pt-4">
+            <label className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                checked={config.enableFunctionCalling}
+                onChange={(e) => setConfig((c) => ({ ...c, enableFunctionCalling: e.target.checked }))}
+                disabled={isConnected}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Enable Function Calling</span>
+            </label>
+
+            {config.enableFunctionCalling && (
+              <div className="space-y-2 pl-6">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={config.functions.enableDateTime}
+                    onChange={(e) =>
+                      setConfig((c) => ({
+                        ...c,
+                        functions: { ...c.functions, enableDateTime: e.target.checked },
+                      }))
+                    }
+                    disabled={isConnected}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-xs text-gray-700">getCurrentDateTime()</span>
+                </label>
+                <p className="text-xs text-gray-500 ml-6">Get current date, time, and timezone</p>
+              </div>
+            )}
+          </div>
+
           {/* Avatar Settings */}
           <div className="border-t border-gray-200 pt-4">
             <label className="flex items-center gap-2 mb-3">

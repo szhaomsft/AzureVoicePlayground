@@ -26,6 +26,10 @@ export interface VoiceLiveChatConfig {
   useEchoCancellation: boolean;
   temperature: number;
   avatar: AvatarConfig;
+  enableFunctionCalling: boolean;
+  functions: {
+    enableDateTime: boolean;
+  };
 }
 
 export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
@@ -49,6 +53,10 @@ export const DEFAULT_CHAT_CONFIG: VoiceLiveChatConfig = {
   useEchoCancellation: false,
   temperature: 0.9,
   avatar: { ...DEFAULT_AVATAR_CONFIG },
+  enableFunctionCalling: true,
+  functions: {
+    enableDateTime: true,
+  },
 };
 
 export const CHAT_MODEL_OPTIONS = [

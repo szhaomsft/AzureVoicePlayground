@@ -14,6 +14,8 @@ import {
   type ServerEventSessionAvatarConnecting,
   type ServerEventSessionUpdated,
   type ServerEventSessionCreated,
+  type ServerEventResponseFunctionCallArgumentsDelta,
+  type ServerEventResponseFunctionCallArgumentsDone,
   type VoiceLiveSessionHandlers,
   type RequestSession,
   type AvatarConfig as SdkAvatarConfig,
@@ -62,6 +64,9 @@ export class VoiceLiveChatClient {
 
   private currentResponseText = '';
   private currentResponseId = '';
+  private currentFunctionCallName = '';
+  private currentFunctionCallArgs = '';
+  private currentFunctionCallId = '';
 
   private readonly events: ChatClientEvents;
 
@@ -153,6 +158,24 @@ export class VoiceLiveChatClient {
     const isGpt5Model = config.model.includes('gpt-5');
     const temperature = isGpt5Model ? 1 : config.temperature;
 
+    // Define tools for function calling based on enabled functions
+    const tools: any[] = [];
+
+    if (config.enableFunctionCalling) {
+      if (config.functions.enableDateTime) {
+        tools.push({
+          type: 'function',
+          name: 'getCurrentDateTime',
+          description: 'Get the current date and time in ISO 8601 format with timezone information',
+          parameters: {
+            type: 'object',
+            properties: {},
+            required: [],
+          },
+        });
+      }
+    }
+
     return {
       modalities: modalities as any,
       model: config.model,
@@ -183,6 +206,7 @@ export class VoiceLiveChatClient {
         ? { type: 'server_echo_cancellation' }
         : undefined,
       avatar: avatarSdkConfig,
+      tools: tools.length > 0 ? tools : undefined,
     };
   }
 
@@ -314,6 +338,22 @@ export class VoiceLiveChatClient {
     }
   }
 
+  private executeFunction(name: string, args: string): string {
+    console.log('[VoiceLive Chat] Executing function:', name, 'with args:', args);
+
+    if (name === 'getCurrentDateTime') {
+      const now = new Date();
+      const result = {
+        datetime: now.toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timestamp: now.getTime(),
+      };
+      return JSON.stringify(result);
+    }
+
+    return JSON.stringify({ error: 'Unknown function' });
+  }
+
   async connect(config: VoiceLiveChatConfig) {
     if (this.state.isConnected) return;
 
@@ -352,6 +392,7 @@ export class VoiceLiveChatClient {
       },
       onServerError: async (event: ServerEventError) => {
         console.error('[VoiceLive Chat] Server error', event.error);
+        console.error('[VoiceLive Chat] Error details:', JSON.stringify(event.error, null, 2));
         this.addMessage('error', `Server Error: ${event.error.message}`);
         this.setState({ statusText: `Error: ${event.error.message}` });
       },
@@ -435,12 +476,50 @@ export class VoiceLiveChatClient {
         console.log('[VoiceLive Chat] Response created', event);
         this.currentResponseId = event.response.id ?? generateId();
         this.currentResponseText = '';
+        this.currentFunctionCallName = '';
+        this.currentFunctionCallArgs = '';
+        this.currentFunctionCallId = '';
       },
       onResponseTextDelta: async (event: ServerEventResponseTextDelta) => {
         this.currentResponseText += event.delta;
       },
       onResponseTextDone: async (event: ServerEventResponseTextDone) => {
         console.log('[VoiceLive Chat] Response text done', event);
+      },
+      onResponseFunctionCallArgumentsDelta: async (event: ServerEventResponseFunctionCallArgumentsDelta) => {
+        console.log('[VoiceLive Chat] Function call arguments delta', event);
+        this.currentFunctionCallArgs += event.delta;
+        this.currentFunctionCallId = event.callId;
+      },
+      onResponseFunctionCallArgumentsDone: async (event: ServerEventResponseFunctionCallArgumentsDone) => {
+        console.log('[VoiceLive Chat] Function call arguments done', event);
+
+        // Execute the function
+        const result = this.executeFunction(event.name, event.arguments);
+        console.log('[VoiceLive Chat] Function result:', result);
+
+        // Add function call to chat
+        this.addMessage('assistant', `🔧 Called ${event.name}()`);
+
+        // Send function result back to the server
+        if (this.session) {
+          await this.session.addConversationItem({
+            type: 'function_call_output',
+            callId: event.callId,
+            output: result,
+          } as any);
+
+          // Trigger response
+          await this.session.sendEvent({
+            type: 'response.create',
+            response: { modalities: ['text', 'audio'] },
+          });
+        }
+
+        // Reset function call state
+        this.currentFunctionCallName = '';
+        this.currentFunctionCallArgs = '';
+        this.currentFunctionCallId = '';
       },
       onResponseAudioDelta: async (event: ServerEventResponseAudioDelta) => {
         if (!this.avatarConfig?.enabled) {
