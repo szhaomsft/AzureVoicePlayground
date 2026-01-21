@@ -177,35 +177,40 @@ export function SpeechToTextPlayground({
         segments: realtimeSTT.transcript.segments,
         fullText: realtimeSTT.transcript.text,
         interimText: realtimeSTT.transcript.interimText,
-        isStreaming: realtimeSTT.transcript.isStreaming
+        isStreaming: realtimeSTT.transcript.isStreaming,
+        detectedLanguage: undefined
       };
     } else if (selectedModel === 'fast-transcription' && fastTranscription.transcript) {
       return {
         segments: fastTranscription.transcript.segments,
         fullText: fastTranscription.transcript.fullText,
         interimText: undefined,
-        isStreaming: false
+        isStreaming: false,
+        detectedLanguage: fastTranscription.transcript.language
       };
     } else if (selectedModel === 'llm-speech' && llmSpeech.transcript) {
       return {
         segments: llmSpeech.transcript.segments,
         fullText: llmSpeech.transcript.fullText,
         interimText: undefined,
-        isStreaming: false
+        isStreaming: false,
+        detectedLanguage: llmSpeech.transcript.language
       };
     } else if (selectedModel === 'whisper' && whisperTranscription.transcript) {
       return {
         segments: whisperTranscription.transcript.segments,
         fullText: whisperTranscription.transcript.fullText,
         interimText: undefined,
-        isStreaming: false
+        isStreaming: false,
+        detectedLanguage: whisperTranscription.transcript.language
       };
     }
     return {
       segments: [],
       fullText: '',
       interimText: undefined,
-      isStreaming: false
+      isStreaming: false,
+      detectedLanguage: undefined
     };
   };
 
@@ -315,6 +320,7 @@ export function SpeechToTextPlayground({
               interimText={displayData.interimText}
               isStreaming={displayData.isStreaming}
               audioSource={audioSource}
+              detectedLanguage={displayData.detectedLanguage}
             />
 
             {/* Export Options */}

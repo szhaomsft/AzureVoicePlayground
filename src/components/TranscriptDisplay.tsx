@@ -11,6 +11,7 @@ interface TranscriptDisplayProps {
   showTimestamps?: boolean;
   showConfidence?: boolean;
   audioSource?: File | Blob | null;
+  detectedLanguage?: string;
 }
 
 export function TranscriptDisplay({
@@ -20,7 +21,8 @@ export function TranscriptDisplay({
   isStreaming,
   showTimestamps = true,
   showConfidence = true,
-  audioSource
+  audioSource,
+  detectedLanguage
 }: TranscriptDisplayProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playingSegment, setPlayingSegment] = useState<number | null>(null);
@@ -175,9 +177,16 @@ export function TranscriptDisplay({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">
-          Transcript
-        </label>
+        <div className="flex items-center gap-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Transcript
+          </label>
+          {detectedLanguage && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+              {detectedLanguage}
+            </span>
+          )}
+        </div>
         {isStreaming && (
           <div className="flex items-center gap-2 text-sm text-blue-600">
             <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
