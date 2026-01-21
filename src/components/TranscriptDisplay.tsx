@@ -63,6 +63,19 @@ export function TranscriptDisplay({
     }
 
     const audio = audioRef.current;
+
+    // If clicking the currently playing segment, stop it
+    if (playingSegment === index) {
+      console.log('Stopping currently playing segment:', index);
+      audio.pause();
+      setPlayingSegment(null);
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+      return;
+    }
+
     const startTime = segment.offset / 1000; // Convert ms to seconds
     const endTime = (segment.offset + segment.duration) / 1000;
 
