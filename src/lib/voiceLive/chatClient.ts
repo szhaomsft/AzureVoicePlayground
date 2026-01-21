@@ -64,9 +64,14 @@ export class VoiceLiveChatClient {
 
   private currentResponseText = '';
   private currentResponseId = '';
+  private currentResponseMessageId = '';  // Track the ID of the current streaming message
   private currentFunctionCallName = '';
   private currentFunctionCallArgs = '';
   private currentFunctionCallId = '';
+  private pendingFunctionResult: { callId: string; output: string } | null = null;
+  private currentUserTranscript = '';
+  private currentUserMessageId = '';  // Track the ID of the current user message
+  private isResponseInProgress = false;
 
   private readonly events: ChatClientEvents;
 
@@ -87,7 +92,7 @@ export class VoiceLiveChatClient {
     this.events.onState(this.state);
   }
 
-  private addMessage(type: ChatMessage['type'], content: string) {
+  private addMessage(type: ChatMessage['type'], content: string): string {
     const message: ChatMessage = {
       id: generateId(),
       type,
@@ -95,6 +100,57 @@ export class VoiceLiveChatClient {
       timestamp: Date.now(),
     };
     this.setState({ messages: [...this.state.messages, message] });
+    return message.id;
+  }
+
+  private updateLastMessage(content: string) {
+    console.log('[VoiceLive Chat] Updating last message with:', content);
+    const messages = [...this.state.messages];
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      console.log('[VoiceLive Chat] Last message type:', lastMessage.type);
+      messages[messages.length - 1] = {
+        ...lastMessage,
+        content,
+      };
+      this.setState({ messages });
+    } else {
+      console.warn('[VoiceLive Chat] No messages to update!');
+    }
+  }
+
+  private updateMessageById(messageId: string, content: string) {
+    const messages = [...this.state.messages];
+    const index = messages.findIndex(m => m.id === messageId);
+    if (index !== -1) {
+      messages[index] = {
+        ...messages[index],
+        content,
+      };
+      this.setState({ messages });
+    } else {
+      console.warn('[VoiceLive Chat] Message not found:', messageId);
+    }
+  }
+
+  private async sendPendingFunctionResult() {
+    if (this.pendingFunctionResult && this.session) {
+      console.log('[VoiceLive Chat] Sending pending function result to server...');
+      const { callId, output } = this.pendingFunctionResult;
+      this.pendingFunctionResult = null;
+
+      await this.session.addConversationItem({
+        type: 'function_call_output',
+        callId: callId,
+        output: output,
+      } as any);
+
+      console.log('[VoiceLive Chat] Triggering response for function result...');
+      await this.session.sendEvent({
+        type: 'response.create',
+        response: { modalities: ['text', 'audio'] },
+      });
+    }
   }
 
   private buildAvatarConfig(avatar: AvatarConfig): SdkAvatarConfig | undefined {
@@ -167,6 +223,19 @@ export class VoiceLiveChatClient {
           type: 'function',
           name: 'getCurrentDateTime',
           description: 'Get the current date and time in ISO 8601 format with timezone information',
+          parameters: {
+            type: 'object',
+            properties: {},
+            required: [],
+          },
+        });
+      }
+
+      if (config.functions.enableWeatherForecast) {
+        tools.push({
+          type: 'function',
+          name: 'getWeatherForecast',
+          description: 'Get a detailed 7-day weather forecast for the user\'s location. This is a long-running operation that takes about 10 seconds to fetch comprehensive weather data.',
           parameters: {
             type: 'object',
             properties: {},
@@ -338,7 +407,7 @@ export class VoiceLiveChatClient {
     }
   }
 
-  private executeFunction(name: string, args: string): string {
+  private async executeFunction(name: string, args: string): Promise<string> {
     console.log('[VoiceLive Chat] Executing function:', name, 'with args:', args);
 
     if (name === 'getCurrentDateTime') {
@@ -347,6 +416,39 @@ export class VoiceLiveChatClient {
         datetime: now.toISOString(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         timestamp: now.getTime(),
+      };
+      return JSON.stringify(result);
+    }
+
+    if (name === 'getWeatherForecast') {
+      console.log('[VoiceLive Chat] Starting weather forecast fetch (10 second operation)...');
+      const startTime = Date.now();
+
+      // Simulate 10-second weather API call
+      await new Promise(resolve => setTimeout(resolve, 10000));
+
+      const endTime = Date.now();
+      console.log(`[VoiceLive Chat] Weather forecast completed. Actual time: ${endTime - startTime}ms`);
+
+      // Generate realistic weather forecast data
+      const result = {
+        location: 'Seattle, WA',
+        current: {
+          temperature: 52,
+          condition: 'Partly Cloudy',
+          humidity: 65,
+          windSpeed: 12,
+        },
+        forecast: [
+          { day: 'Today', high: 55, low: 48, condition: 'Partly Cloudy', precipitation: 20 },
+          { day: 'Tomorrow', high: 58, low: 50, condition: 'Sunny', precipitation: 5 },
+          { day: 'Wednesday', high: 60, low: 52, condition: 'Sunny', precipitation: 0 },
+          { day: 'Thursday', high: 57, low: 49, condition: 'Cloudy', precipitation: 30 },
+          { day: 'Friday', high: 54, low: 47, condition: 'Rainy', precipitation: 75 },
+          { day: 'Saturday', high: 56, low: 48, condition: 'Partly Cloudy', precipitation: 40 },
+          { day: 'Sunday', high: 59, low: 51, condition: 'Sunny', precipitation: 10 },
+        ],
+        fetchedAt: new Date().toISOString(),
       };
       return JSON.stringify(result);
     }
@@ -449,18 +551,30 @@ export class VoiceLiveChatClient {
           this.addMessage('error', `Avatar connection failed: ${error}`);
         }
       },
-      onConversationItemInputAudioTranscriptionDelta: async (
-        event: ServerEventConversationItemInputAudioTranscriptionDelta
-      ) => {
-        console.log('[VoiceLive Chat] Transcription delta', event.delta);
+      onConversationItemInputAudioTranscriptionDelta: async (event: any) => {
+        console.log('[VoiceLive Chat] User transcription delta:', event.delta);
+
+        // Create user message on first delta if not exists
+        if (!this.currentUserMessageId) {
+          this.currentUserMessageId = this.addMessage('user', '');
+        }
+
+        this.currentUserTranscript += event.delta;
+        this.updateMessageById(this.currentUserMessageId, this.currentUserTranscript);
       },
       onConversationItemInputAudioTranscriptionCompleted: async (
         event: ServerEventConversationItemInputAudioTranscriptionCompleted
       ) => {
         console.log('[VoiceLive Chat] Transcription completed', event.transcript);
-        if (event.transcript?.trim()) {
+
+        // If we didn't get deltas, add the full transcript now
+        if (!this.currentUserMessageId && event.transcript?.trim()) {
           this.addMessage('user', event.transcript);
         }
+
+        // Reset user transcript and message ID
+        this.currentUserTranscript = '';
+        this.currentUserMessageId = '';
       },
       onInputAudioBufferSpeechStarted: async () => {
         console.log('[VoiceLive Chat] Speech started - interrupting playback');
@@ -474,14 +588,24 @@ export class VoiceLiveChatClient {
       },
       onResponseCreated: async (event: ServerEventResponseCreated) => {
         console.log('[VoiceLive Chat] Response created', event);
+        this.isResponseInProgress = true;
         this.currentResponseId = event.response.id ?? generateId();
         this.currentResponseText = '';
+        this.currentResponseMessageId = '';  // Reset message ID for new response
         this.currentFunctionCallName = '';
         this.currentFunctionCallArgs = '';
         this.currentFunctionCallId = '';
       },
       onResponseTextDelta: async (event: ServerEventResponseTextDelta) => {
+        console.log('[VoiceLive Chat] Text delta:', event.delta);
+
+        // Create message on first delta if not exists
+        if (!this.currentResponseMessageId) {
+          this.currentResponseMessageId = this.addMessage('assistant', '');
+        }
+
         this.currentResponseText += event.delta;
+        this.updateMessageById(this.currentResponseMessageId, this.currentResponseText);
       },
       onResponseTextDone: async (event: ServerEventResponseTextDone) => {
         console.log('[VoiceLive Chat] Response text done', event);
@@ -494,27 +618,36 @@ export class VoiceLiveChatClient {
       onResponseFunctionCallArgumentsDone: async (event: ServerEventResponseFunctionCallArgumentsDone) => {
         console.log('[VoiceLive Chat] Function call arguments done', event);
 
-        // Execute the function
-        const result = this.executeFunction(event.name, event.arguments);
-        console.log('[VoiceLive Chat] Function result:', result);
+        // Add function call indicator to chat
+        this.addMessage('assistant', `🔧 Calling ${event.name}()...`);
 
-        // Add function call to chat
-        this.addMessage('assistant', `🔧 Called ${event.name}()`);
+        // Execute the function asynchronously (don't await for long-running operations)
+        // This allows the response to complete while the function runs in background
+        this.executeFunction(event.name, event.arguments).then(async (result) => {
+          console.log('[VoiceLive Chat] Function result:', result);
 
-        // Send function result back to the server
-        if (this.session) {
-          await this.session.addConversationItem({
-            type: 'function_call_output',
+          // Add completion indicator
+          this.addMessage('status', `✅ ${event.name}() completed`);
+
+          // Store the pending result
+          this.pendingFunctionResult = {
             callId: event.callId,
             output: result,
-          } as any);
+          };
 
-          // Trigger response
-          await this.session.sendEvent({
-            type: 'response.create',
-            response: { modalities: ['text', 'audio'] },
-          });
-        }
+          // Check if a response is currently in progress
+          if (this.isResponseInProgress) {
+            console.log('[VoiceLive Chat] Response in progress, waiting for onResponseDone to send function result...');
+            // Don't send yet - wait for onResponseDone
+          } else {
+            // No response in progress, send immediately
+            console.log('[VoiceLive Chat] No response in progress, sending function result immediately...');
+            await this.sendPendingFunctionResult();
+          }
+        }).catch((error) => {
+          console.error('[VoiceLive Chat] Function execution error:', error);
+          this.addMessage('error', `Function error: ${error.message}`);
+        });
 
         // Reset function call state
         this.currentFunctionCallName = '';
@@ -529,8 +662,25 @@ export class VoiceLiveChatClient {
           }
         }
       },
+      onResponseAudioTranscriptDelta: async (event: any) => {
+        console.log('[VoiceLive Chat] Audio transcript delta:', event.delta);
+
+        // Create message on first delta if not exists
+        if (!this.currentResponseMessageId) {
+          this.currentResponseMessageId = this.addMessage('assistant', '');
+        }
+
+        this.currentResponseText += event.delta;
+        this.updateMessageById(this.currentResponseMessageId, this.currentResponseText);
+      },
+      onResponseAudioTranscriptDone: async (event: any) => {
+        console.log('[VoiceLive Chat] Audio transcript done', event);
+      },
       onResponseDone: async (event: ServerEventResponseDone) => {
         console.log('[VoiceLive Chat] Response done', event);
+
+        // Mark response as no longer in progress
+        this.isResponseInProgress = false;
 
         // Check for failed response status
         if (event.response.status === 'failed') {
@@ -544,28 +694,29 @@ export class VoiceLiveChatClient {
           return;
         }
 
-        let text = this.currentResponseText.trim();
-
-        if (!text && event.response.output && event.response.output.length > 0) {
+        // If we didn't get text deltas, try to extract text from response output
+        if (!this.currentResponseText.trim() && event.response.output && event.response.output.length > 0) {
           const outputItem: any = event.response.output[0];
           if (outputItem?.content && Array.isArray(outputItem.content)) {
             const textContent = outputItem.content.find(
               (c: any) => (c.type === 'audio' && c.transcript) || c.type === 'text'
             );
             if (textContent?.transcript) {
-              text = textContent.transcript;
+              this.updateLastMessage(textContent.transcript);
             } else if (textContent?.text) {
-              text = textContent.text;
+              this.updateLastMessage(textContent.text);
             }
           }
         }
 
-        if (text) {
-          this.addMessage('assistant', text);
-        }
-
         this.currentResponseText = '';
         this.currentResponseId = '';
+
+        // If there's a pending function result, send it now
+        if (this.pendingFunctionResult) {
+          console.log('[VoiceLive Chat] Response complete, sending pending function result...');
+          await this.sendPendingFunctionResult();
+        }
       },
       onError: async (args) => {
         console.log('[VoiceLive Chat] Error', args);

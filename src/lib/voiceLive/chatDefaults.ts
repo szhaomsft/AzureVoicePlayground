@@ -29,6 +29,7 @@ export interface VoiceLiveChatConfig {
   enableFunctionCalling: boolean;
   functions: {
     enableDateTime: boolean;
+    enableWeatherForecast: boolean;
   };
 }
 
@@ -44,7 +45,7 @@ export const DEFAULT_CHAT_CONFIG: VoiceLiveChatConfig = {
   endpoint: '',
   apiKey: '',
   model: 'gpt-realtime',
-  instructions: 'You are a helpful and friendly AI assistant. Be concise and natural in your responses.',
+  instructions: 'You are a helpful and friendly AI assistant. Be concise and natural in your responses.\n\nPlease only respond in English.\n\nBefore calling weather, say something to acknowledge in A FEW words.',
   voice: 'en-us-ava:DragonHDLatestNeural',
   recognitionLanguage: 'auto',
   turnDetectionType: 'server_vad',
@@ -56,6 +57,7 @@ export const DEFAULT_CHAT_CONFIG: VoiceLiveChatConfig = {
   enableFunctionCalling: true,
   functions: {
     enableDateTime: true,
+    enableWeatherForecast: true,
   },
 };
 
