@@ -29,6 +29,7 @@ export type ChatState = {
   isAvatarConnected: boolean;
   messages: ChatMessage[];
   statusText: string;
+  sessionId: string;
 };
 
 export type ChatClientEvents = {
@@ -56,6 +57,7 @@ export class VoiceLiveChatClient {
     isAvatarConnected: false,
     messages: [],
     statusText: '',
+    sessionId: '',
   };
 
   private currentResponseText = '';
@@ -147,6 +149,10 @@ export class VoiceLiveChatClient {
       modalities.push('avatar');
     }
 
+    // GPT-5 models don't support custom temperature, only default (1)
+    const isGpt5Model = config.model.includes('gpt-5');
+    const temperature = isGpt5Model ? 1 : config.temperature;
+
     return {
       modalities: modalities as any,
       model: config.model,
@@ -169,7 +175,7 @@ export class VoiceLiveChatClient {
         type: config.turnDetectionType,
         removeFillerWords: config.removeFillerWords,
       },
-      temperature: config.temperature,
+      temperature,
       inputAudioNoiseReduction: config.useNoiseSuppression
         ? { type: 'azure_deep_noise_suppression' }
         : undefined,
@@ -336,7 +342,7 @@ export class VoiceLiveChatClient {
     // Subscribe to handlers BEFORE connecting so we don't miss any events
     const handlers: VoiceLiveSessionHandlers = {
       onConnected: async (_args, ctx) => {
-        console.log('[VoiceLive Chat] Connected', { sessionId: ctx.sessionId });
+        console.log('[VoiceLive Chat] Connected', { sessionId: ctx.sessionId, ctx });
         this.setState({ statusText: 'Connected' });
       },
       onDisconnected: async (args) => {
@@ -345,11 +351,18 @@ export class VoiceLiveChatClient {
         this.setState({ statusText: `Disconnected: ${args.reason}` });
       },
       onServerError: async (event: ServerEventError) => {
-        console.log('[VoiceLive Chat] Server error', event.error);
-        this.addMessage('error', event.error.message);
+        console.error('[VoiceLive Chat] Server error', event.error);
+        this.addMessage('error', `Server Error: ${event.error.message}`);
+        this.setState({ statusText: `Error: ${event.error.message}` });
       },
       onSessionCreated: async (event: ServerEventSessionCreated) => {
         console.log('[VoiceLive Chat] Session created', JSON.stringify(event.session, null, 2));
+        // Extract session ID from event.session.id
+        const sid = (event.session as any).id || '';
+        console.log('[VoiceLive Chat] Extracted session ID:', sid);
+        if (sid) {
+          this.setState({ sessionId: sid });
+        }
         if (event.session.avatar) {
           console.log('[VoiceLive Chat] Avatar in created session:', JSON.stringify(event.session.avatar, null, 2));
         }
@@ -439,6 +452,18 @@ export class VoiceLiveChatClient {
       },
       onResponseDone: async (event: ServerEventResponseDone) => {
         console.log('[VoiceLive Chat] Response done', event);
+
+        // Check for failed response status
+        if (event.response.status === 'failed') {
+          const statusDetails = (event.response as any).statusDetails;
+          const errorMsg = statusDetails?.error?.message || 'Response failed';
+          console.error('[VoiceLive Chat] Response failed:', statusDetails);
+          this.addMessage('error', `Response Error: ${errorMsg}`);
+          this.setState({ statusText: `Error: ${errorMsg}` });
+          this.currentResponseText = '';
+          this.currentResponseId = '';
+          return;
+        }
 
         let text = this.currentResponseText.trim();
 

@@ -54,6 +54,12 @@ export const DEFAULT_CHAT_CONFIG: VoiceLiveChatConfig = {
 export const CHAT_MODEL_OPTIONS = [
   { id: 'gpt-realtime', name: 'GPT Realtime' },
   { id: 'gpt-realtime-mini', name: 'GPT Realtime Mini' },
+  { id: 'gpt-4o', name: 'GPT-4o' },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+  { id: 'gpt-4.1', name: 'GPT-4.1' },
+  { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini' },
+  { id: 'gpt-5-chat', name: 'GPT-5' },
+  { id: 'gpt-5-mini', name: 'GPT-5 Mini' },
 ];
 
 export const RECOGNITION_LANGUAGES = [

@@ -37,6 +37,7 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
   const [isAvatarConnected, setIsAvatarConnected] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [statusText, setStatusText] = useState('');
+  const [sessionId, setSessionId] = useState('');
   const [textInput, setTextInput] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [avatarStream, setAvatarStream] = useState<MediaStream | null>(null);
@@ -67,12 +68,14 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
   if (!chatClientRef.current) {
     chatClientRef.current = new VoiceLiveChatClient({
       onState: (state: ChatState) => {
+        console.log('[Playground] State update received, sessionId:', state.sessionId);
         setIsConnected(state.isConnected);
         setIsRecording(state.isRecording);
         setIsSpeaking(state.isSpeaking);
         setIsAvatarConnected(state.isAvatarConnected);
         setMessages(state.messages);
         setStatusText(state.statusText);
+        setSessionId(state.sessionId);
       },
       onAvatarTrack: handleAvatarTrack,
     });
@@ -157,7 +160,9 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
       // Start recording automatically
       await startRecording();
     } catch (e) {
-      setStatusText(e instanceof Error ? e.message : String(e));
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      console.error('[Playground] Connection error:', errorMsg);
+      setStatusText(`Error: ${errorMsg}`);
     }
   }
 
@@ -348,6 +353,13 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
           </div>
         )}
 
+        {/* Session ID Header - show when connected */}
+        {isConnected && (
+          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+            <p className="text-xs font-mono text-gray-500">Session: {sessionId || 'Loading...'}</p>
+          </div>
+        )}
+
         {/* Chat Messages - scrollable */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
           {messages.length === 0 ? (
@@ -452,22 +464,24 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
             </select>
           </div>
 
-          {/* Recognition Language */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Recognition Language</label>
-            <select
-              value={config.recognitionLanguage}
-              onChange={(e) => setConfig((c) => ({ ...c, recognitionLanguage: e.target.value }))}
-              disabled={isConnected}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-            >
-              {RECOGNITION_LANGUAGES.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Recognition Language - only show for text models (non-realtime) */}
+          {!config.model.includes('realtime') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Recognition Language</label>
+              <select
+                value={config.recognitionLanguage}
+                onChange={(e) => setConfig((c) => ({ ...c, recognitionLanguage: e.target.value }))}
+                disabled={isConnected}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+              >
+                {RECOGNITION_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Avatar Settings */}
           <div className="border-t border-gray-200 pt-4">
