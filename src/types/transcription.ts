@@ -6,6 +6,7 @@ export interface TranscriptSegment {
   duration: number; // milliseconds
   confidence: number; // 0-1
   words?: WordTiming[];
+  speaker?: number; // Speaker ID for diarization
 }
 
 export interface WordTiming {
