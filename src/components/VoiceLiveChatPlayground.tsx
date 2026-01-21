@@ -280,9 +280,9 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
           </div>
         </div>
 
-        {/* Audio visualization circle - fixed at top, doesn't scroll */}
+        {/* Audio visualization circle - fixed height at top, doesn't scroll */}
         {!config.avatar.enabled && (
-          <div className="flex-shrink-0 flex flex-col items-center py-4 bg-white border-b border-gray-100">
+          <div className="flex-shrink-0 flex flex-col items-center py-4 bg-white border-b border-gray-100" style={{ height: '200px' }}>
             <div
               ref={circleRef}
               className="rounded-full transition-all duration-150 ease-out flex items-center justify-center"
@@ -320,9 +320,9 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
           </div>
         )}
 
-        {/* Avatar Video Display - fixed at top when avatar is enabled */}
+        {/* Avatar Video Display - fixed height at top when avatar is enabled */}
         {config.avatar.enabled && (
-          <div className="flex-shrink-0 flex flex-col items-center py-4 bg-white border-b border-gray-100">
+          <div className="flex-shrink-0 flex flex-col items-center py-4 bg-white border-b border-gray-100" style={{ height: '480px' }}>
             <div
               className="rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center"
               style={{ width: '400px', height: '400px' }}
