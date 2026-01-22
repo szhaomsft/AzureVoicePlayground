@@ -131,11 +131,9 @@ export function buildMultiTalkerSSML(
 
   return `<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" version="1.0" xml:lang="${locale}">
 <voice name="${voiceName}">
-<lang xml:lang="${locale}">
 <mstts:dialog>
 ${turns}
 </mstts:dialog>
-</lang>
 </voice>
 </speak>`;
 }
