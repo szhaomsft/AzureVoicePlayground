@@ -103,7 +103,7 @@ export function useLLMSpeech(settings: AzureSettings): UseLLMSpeechReturn {
       }
 
       // Call LLM Speech API (uses the same endpoint as Fast Transcription with enhanced mode)
-      const endpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15`;
+      const endpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2025-10-15`;
 
       setProgress(50);
 

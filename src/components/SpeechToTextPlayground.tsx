@@ -41,6 +41,7 @@ export function SpeechToTextPlayground({
   const [isUsingRecorder, setIsUsingRecorder] = useState<boolean>(false);
   const [enableDiarization, setEnableDiarization] = useState<boolean>(false);
   const [maxSpeakers, setMaxSpeakers] = useState<number>(2);
+  const [llmPrompt, setLlmPrompt] = useState<string>('');
 
   // Hooks for each STT model
   const realtimeSTT = useRealtimeSTT(settings);
@@ -149,7 +150,8 @@ export function SpeechToTextPlayground({
       } else if (selectedModel === 'llm-speech') {
         await llmSpeech.transcribe(audioSource, selectedLanguage, {
           enableDiarization,
-          maxSpeakers
+          maxSpeakers,
+          prompt: llmPrompt.trim() ? llmPrompt.split('\n').filter(line => line.trim()) : undefined
         });
       } else if (selectedModel === 'whisper') {
         await whisperTranscription.transcribe(audioSource, selectedLanguage);
@@ -322,6 +324,7 @@ export function SpeechToTextPlayground({
               isStreaming={displayData.isStreaming}
               audioSource={audioSource}
               detectedLanguage={displayData.detectedLanguage}
+              showConfidence={selectedModel !== 'llm-speech'}
             />
 
             {/* Export Options */}
@@ -400,6 +403,26 @@ export function SpeechToTextPlayground({
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* LLM Prompt (LLM Speech only) */}
+            {selectedModel === 'llm-speech' && (
+              <div className="space-y-2">
+                <label htmlFor="llmPrompt" className="block text-sm font-medium text-gray-700">
+                  LLM Prompt (Optional)
+                </label>
+                <textarea
+                  id="llmPrompt"
+                  value={llmPrompt}
+                  onChange={(e) => setLlmPrompt(e.target.value)}
+                  placeholder="Example: Output must be in lexical format.&#10;Include all technical terms.&#10;Preserve punctuation."
+                  rows={3}
+                  className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono text-xs"
+                />
+                <p className="text-xs text-gray-500">
+                  Add custom instructions for the LLM to guide transcription output format and style. Each line becomes a separate prompt instruction.
+                </p>
               </div>
             )}
           </div>

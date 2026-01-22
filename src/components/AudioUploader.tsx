@@ -16,6 +16,11 @@ const ACCEPTED_FORMATS = [
   'audio/flac',
   'audio/x-flac',
   'audio/webm',
+  'video/mp4',
+  'video/webm',
+  'video/x-m4v',
+  'video/quicktime',
+  'video/x-msvideo',
 ];
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
@@ -58,9 +63,10 @@ export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderPro
   const handlePlayPause = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!blobUrlRef.current) return;
+    if (!blobUrlRef.current || !file) return;
 
     if (!audioRef.current) {
+      // Use Audio for both audio and video files (just play the audio track)
       audioRef.current = new Audio(blobUrlRef.current);
       audioRef.current.addEventListener('ended', () => {
         setIsPlaying(false);
@@ -74,12 +80,12 @@ export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderPro
       audioRef.current.play();
       setIsPlaying(true);
     }
-  }, [isPlaying]);
+  }, [isPlaying, file]);
 
   const validateFile = useCallback((file: File): string | null => {
     // Check file type
-    if (!ACCEPTED_FORMATS.includes(file.type) && !file.name.match(/\.(wav|mp3|ogg|flac|webm)$/i)) {
-      return 'Unsupported file format. Please use WAV, MP3, OGG, FLAC, or WebM.';
+    if (!ACCEPTED_FORMATS.includes(file.type) && !file.name.match(/\.(wav|mp3|ogg|flac|webm|mp4|m4v|mov|avi)$/i)) {
+      return 'Unsupported file format. Please use WAV, MP3, OGG, FLAC, WebM, MP4, MOV, or AVI.';
     }
 
     // Check file size
@@ -161,13 +167,17 @@ export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderPro
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const isVideoFile = (file: File): boolean => {
+    return file.type.startsWith('video/') || file.name.match(/\.(mp4|m4v|mov|avi|webm)$/i) !== null;
+  };
+
   return (
     <div className="space-y-3">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
-        accept=".wav,.mp3,.ogg,.flac,.webm,audio/*"
+        accept=".wav,.mp3,.ogg,.flac,.webm,.mp4,.m4v,.mov,.avi,audio/*,video/*"
         onChange={handleInputChange}
         className="hidden"
         disabled={disabled}
@@ -189,14 +199,25 @@ export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderPro
       >
         {file ? (
           <div className="flex items-center justify-center gap-3">
-            <svg className="w-8 h-8 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-              />
-            </svg>
+            {isVideoFile(file) ? (
+              <svg className="w-8 h-8 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+            ) : (
+              <svg className="w-8 h-8 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                />
+              </svg>
+            )}
             <div className="text-left flex-1 min-w-0">
               <p className="font-medium text-gray-800 truncate">{file.name}</p>
               <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
@@ -242,7 +263,7 @@ export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderPro
             <p className="text-gray-600 mb-1">
               <span className="font-medium text-blue-600">Click to browse</span> or drag and drop
             </p>
-            <p className="text-sm text-gray-500">WAV, MP3, OGG, FLAC, WebM (max 100 MB)</p>
+            <p className="text-sm text-gray-500">WAV, MP3, OGG, FLAC, WebM, MP4, MOV, AVI (max 100 MB)</p>
           </div>
         )}
       </div>

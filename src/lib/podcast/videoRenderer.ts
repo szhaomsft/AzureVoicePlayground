@@ -1,8 +1,9 @@
 /**
- * Video renderer for podcast with beautiful background and waveform
+ * Video renderer for podcast with static Bing wallpaper background
+ * Generates minimal video files with just a static image and audio
  */
 
-import { fetchBingDailyImage, getPicsumImage, getGradientBackground, loadImage, createGradientBackground, createFallbackGradient } from '../../utils/bingImage';
+import { loadImage, createFallbackGradient } from '../../utils/bingImage';
 
 export interface VideoGenerationOptions {
   audioUrl: string;
@@ -19,14 +20,12 @@ export class PodcastVideoRenderer {
   private ctx: CanvasRenderingContext2D;
   private audioElement: HTMLAudioElement;
   private audioContext: AudioContext | null = null;
-  private analyser: AnalyserNode | null = null;
-  private dataArray: Uint8Array | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
   private isRecording = false;
-  private animationFrameId: number | null = null;
   private backgroundImage: HTMLImageElement | null = null;
   private backgroundImageUrl: string | null = null;
+  private audioBlobUrl: string | null = null;
 
   constructor(
     private options: VideoGenerationOptions
@@ -46,7 +45,6 @@ export class PodcastVideoRenderer {
     this.ctx = ctx;
 
     this.audioElement = new Audio();
-    this.audioElement.crossOrigin = 'anonymous';
   }
 
   /**
@@ -99,24 +97,17 @@ export class PodcastVideoRenderer {
   }
 
   /**
-   * Initialize audio analysis
+   * Initialize audio context for recording (no analysis needed)
    */
-  private initializeAudioAnalysis() {
+  private initializeAudioContext() {
     // Create new AudioContext if needed
     if (!this.audioContext) {
       this.audioContext = new AudioContext();
     }
-
-    // Create analyser
-    this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = 2048;
-
-    const bufferLength = this.analyser.frequencyBinCount;
-    this.dataArray = new Uint8Array(bufferLength);
   }
 
   /**
-   * Draw background image on canvas
+   * Draw static background image on canvas (no overlay, no animations)
    */
   private async drawBackground(): Promise<void> {
     try {
@@ -141,10 +132,6 @@ export class PodcastVideoRenderer {
       const y = (this.canvas.height - img.height * scale) / 2;
 
       this.ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-
-      // Add semi-transparent overlay for better text visibility
-      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     } catch (error) {
       console.warn('Failed to load image, using fallback gradient:', error);
       createFallbackGradient(this.canvas, this.canvas.width, this.canvas.height);
@@ -152,168 +139,31 @@ export class PodcastVideoRenderer {
   }
 
   /**
-   * Draw waveform visualization with enhanced effects
-   */
-  private drawWaveform() {
-    if (!this.analyser || !this.dataArray) return;
-
-    // Get frequency and time domain data
-    this.analyser.getByteTimeDomainData(this.dataArray as any);
-    const frequencyData = new Uint8Array(this.analyser.frequencyBinCount);
-    this.analyser.getByteFrequencyData(frequencyData);
-
-    const width = this.canvas.width;
-    const height = this.canvas.height;
-    const centerY = height / 2;
-    const waveformHeight = height * 0.4;
-
-    // Draw frequency bars (background effect)
-    this.drawFrequencyBars(frequencyData, width, height);
-
-    // Draw main waveform with gradient and glow
-    this.ctx.lineWidth = 4;
-
-    // Create gradient for waveform
-    const gradient = this.ctx.createLinearGradient(0, centerY - waveformHeight/2, 0, centerY + waveformHeight/2);
-    gradient.addColorStop(0, 'rgba(147, 51, 234, 0.9)');    // Purple
-    gradient.addColorStop(0.5, 'rgba(236, 72, 153, 0.9)');  // Pink
-    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.9)');    // Blue
-
-    this.ctx.strokeStyle = gradient;
-
-    // Add glow effect
-    this.ctx.shadowColor = 'rgba(147, 51, 234, 0.8)';
-    this.ctx.shadowBlur = 20;
-
-    this.ctx.beginPath();
-
-    const sliceWidth = width / this.dataArray.length;
-    let x = 0;
-
-    for (let i = 0; i < this.dataArray.length; i++) {
-      const v = this.dataArray[i] / 128.0;
-      const y = centerY + ((v - 1) * waveformHeight) / 2;
-
-      if (i === 0) {
-        this.ctx.moveTo(x, y);
-      } else {
-        this.ctx.lineTo(x, y);
-      }
-
-      x += sliceWidth;
-    }
-
-    this.ctx.stroke();
-
-    // Draw mirrored waveform for symmetry effect
-    this.ctx.globalAlpha = 0.3;
-    this.ctx.beginPath();
-    x = 0;
-
-    for (let i = 0; i < this.dataArray.length; i++) {
-      const v = this.dataArray[i] / 128.0;
-      const y = centerY - ((v - 1) * waveformHeight) / 2;
-
-      if (i === 0) {
-        this.ctx.moveTo(x, y);
-      } else {
-        this.ctx.lineTo(x, y);
-      }
-
-      x += sliceWidth;
-    }
-
-    this.ctx.stroke();
-    this.ctx.globalAlpha = 1.0;
-
-    // Reset shadow
-    this.ctx.shadowBlur = 0;
-  }
-
-  /**
-   * Draw frequency bars visualization
-   */
-  private drawFrequencyBars(frequencyData: Uint8Array, width: number, height: number) {
-    const barCount = 64;
-    const barWidth = width / barCount * 0.8;
-    const barSpacing = width / barCount * 0.2;
-
-    for (let i = 0; i < barCount; i++) {
-      const barHeight = (frequencyData[i] / 255) * (height * 0.3);
-      const x = i * (barWidth + barSpacing) + width * 0.1;
-      const y = height / 2;
-
-      // Create gradient for bars
-      const gradient = this.ctx.createLinearGradient(x, y - barHeight/2, x, y + barHeight/2);
-      gradient.addColorStop(0, 'rgba(147, 51, 234, 0.2)');
-      gradient.addColorStop(0.5, 'rgba(236, 72, 153, 0.3)');
-      gradient.addColorStop(1, 'rgba(147, 51, 234, 0.2)');
-
-      this.ctx.fillStyle = gradient;
-
-      // Draw bar above center
-      this.ctx.fillRect(x, y - barHeight/2, barWidth, barHeight/2);
-
-      // Draw bar below center (mirrored)
-      this.ctx.fillRect(x, y, barWidth, barHeight/2);
-    }
-  }
-
-  /**
-   * Draw text overlay with timestamp
-   */
-  private drawTextOverlay() {
-    const width = this.canvas.width;
-    const height = this.canvas.height;
-
-    // Generation timestamp in bottom right corner
-    this.ctx.font = '16px Arial, sans-serif';
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    this.ctx.textAlign = 'right';
-    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    this.ctx.shadowBlur = 10;
-    const timestamp = new Date().toLocaleString();
-    this.ctx.fillText(timestamp, width - 30, height - 30);
-
-    // Reset shadow
-    this.ctx.shadowBlur = 0;
-  }
-
-  /**
-   * Format time in MM:SS
-   */
-  private formatTime(seconds: number): string {
-    if (!isFinite(seconds)) return '00:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  /**
-   * Render frame - called on each animation frame
-   */
-  private async renderFrame() {
-    // Redraw background (cached for performance)
-    await this.drawBackground();
-
-    // Draw text overlay (just timestamp)
-    this.drawTextOverlay();
-
-    // Continue animation
-    if (this.isRecording) {
-      this.animationFrameId = requestAnimationFrame(() => this.renderFrame());
-    }
-  }
-
-  /**
-   * Start video generation
+   * Start video generation with static background
    */
   async generate(): Promise<void> {
     try {
+      // Fetch audio using CORS proxy to bypass COEP restrictions
+      console.log('Fetching audio from:', this.options.audioUrl);
+
+      // Use CORS proxy to fetch the audio
+      const proxyUrl = 'https://api.allorigins.win/raw?url=';
+      const proxiedUrl = proxyUrl + encodeURIComponent(this.options.audioUrl);
+
+      console.log('Fetching via proxy:', proxiedUrl);
+      const audioResponse = await fetch(proxiedUrl);
+
+      if (!audioResponse.ok) {
+        throw new Error(`Failed to fetch audio via proxy: ${audioResponse.status} ${audioResponse.statusText}`);
+      }
+
+      const audioBlob = await audioResponse.blob();
+      const audioBlobUrl = URL.createObjectURL(audioBlob);
+      this.audioBlobUrl = audioBlobUrl; // Store for cleanup
+
       // Create a NEW audio element for each generation to avoid reuse errors
       this.audioElement = new Audio();
-      this.audioElement.crossOrigin = 'anonymous';
-      this.audioElement.src = this.options.audioUrl;
+      this.audioElement.src = audioBlobUrl;
 
       await this.audioElement.load();
 
@@ -322,19 +172,18 @@ export class PodcastVideoRenderer {
         this.audioElement.addEventListener('loadedmetadata', resolve, { once: true });
       });
 
-      // Initialize audio analysis
-      this.initializeAudioAnalysis();
+      // Initialize audio context (no analysis needed)
+      this.initializeAudioContext();
 
-      // Draw initial background
+      // Draw static background once
       await this.drawBackground();
 
-      // Setup MediaRecorder
-      const canvasStream = this.canvas.captureStream(15); // 15 fps for smaller file size
+      // Setup MediaRecorder with static canvas
+      const canvasStream = this.canvas.captureStream(1); // 1 fps for static image
       const audioTrack = this.audioContext!.createMediaStreamDestination();
 
-      // Connect audio for recording - now safe since it's a new audio element
+      // Connect audio for recording - no analyzer needed
       const audioSource = this.audioContext!.createMediaElementSource(this.audioElement);
-      audioSource.connect(this.analyser!);
       audioSource.connect(audioTrack);
       audioSource.connect(this.audioContext!.destination);
 
@@ -364,7 +213,7 @@ export class PodcastVideoRenderer {
 
       this.mediaRecorder = new MediaRecorder(combinedStream, {
         mimeType,
-        videoBitsPerSecond: 1000000, // 1 Mbps (reduced from 5 Mbps for smaller files)
+        videoBitsPerSecond: 500000, // 500 kbps (reduced for static image)
       });
 
       this.recordedChunks = [];
@@ -385,9 +234,6 @@ export class PodcastVideoRenderer {
       this.isRecording = true;
       this.mediaRecorder.start();
       this.audioElement.play();
-
-      // Start rendering
-      this.renderFrame();
 
       // Monitor progress
       this.audioElement.addEventListener('timeupdate', () => {
@@ -415,11 +261,6 @@ export class PodcastVideoRenderer {
   stop() {
     this.isRecording = false;
 
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
@@ -436,8 +277,11 @@ export class PodcastVideoRenderer {
       this.audioContext = null;
     }
 
-    this.analyser = null;
-    this.dataArray = null;
+    // Revoke blob URL to free memory
+    if (this.audioBlobUrl) {
+      URL.revokeObjectURL(this.audioBlobUrl);
+      this.audioBlobUrl = null;
+    }
   }
 
   /**
