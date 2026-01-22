@@ -31,8 +31,9 @@ export class PodcastVideoRenderer {
   constructor(
     private options: VideoGenerationOptions
   ) {
-    const width = options.width || 1920;
-    const height = options.height || 1080;
+    // Use smaller resolution: 1280x720 (720p) for smaller file size
+    const width = options.width || 1280;
+    const height = options.height || 720;
 
     this.canvas = document.createElement('canvas');
     this.canvas.width = width;
@@ -55,7 +56,7 @@ export class PodcastVideoRenderer {
     // Method 1: Community-maintained Bing wallpaper API (most reliable, try first)
     try {
       const randomIndex = Math.floor(Math.random() * 7); // Get random wallpaper from past week
-      const response = await fetch(`https://bing.biturl.top/?resolution=1920&format=json&index=${randomIndex}&mkt=en-US`);
+      const response = await fetch(`https://bing.biturl.top/?resolution=1280&format=json&index=${randomIndex}&mkt=en-US`);
       if (response.ok) {
         const data = await response.json();
         if (data.url) {
@@ -259,42 +260,18 @@ export class PodcastVideoRenderer {
   }
 
   /**
-   * Draw text overlay with progress bar
+   * Draw text overlay with timestamp
    */
   private drawTextOverlay() {
     const width = this.canvas.width;
     const height = this.canvas.height;
-    const currentTime = this.audioElement.currentTime;
-    const duration = this.audioElement.duration;
-
-    // Draw progress bar
-    const barWidth = width * 0.6;
-    const barHeight = 8;
-    const barX = (width - barWidth) / 2;
-    const barY = height - 100;
-
-    // Background bar
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-    this.ctx.fillRect(barX, barY, barWidth, barHeight);
-
-    // Progress bar
-    const progress = duration > 0 ? currentTime / duration : 0;
-    this.ctx.fillStyle = 'rgba(147, 51, 234, 0.9)'; // Purple color
-    this.ctx.fillRect(barX, barY, barWidth * progress, barHeight);
-
-    // Time display
-    this.ctx.font = '24px Arial, sans-serif';
-    this.ctx.fillStyle = 'white';
-    this.ctx.textAlign = 'center';
-    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    this.ctx.shadowBlur = 10;
-    const timeText = `${this.formatTime(currentTime)} / ${this.formatTime(duration)}`;
-    this.ctx.fillText(timeText, width / 2, barY - 20);
 
     // Generation timestamp in bottom right corner
     this.ctx.font = '16px Arial, sans-serif';
     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     this.ctx.textAlign = 'right';
+    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    this.ctx.shadowBlur = 10;
     const timestamp = new Date().toLocaleString();
     this.ctx.fillText(timestamp, width - 30, height - 30);
 
@@ -316,13 +293,10 @@ export class PodcastVideoRenderer {
    * Render frame - called on each animation frame
    */
   private async renderFrame() {
-    // Redraw background (or cache it for performance)
+    // Redraw background (cached for performance)
     await this.drawBackground();
 
-    // Draw waveform
-    this.drawWaveform();
-
-    // Draw text overlay
+    // Draw text overlay (just timestamp)
     this.drawTextOverlay();
 
     // Continue animation
@@ -355,7 +329,7 @@ export class PodcastVideoRenderer {
       await this.drawBackground();
 
       // Setup MediaRecorder
-      const canvasStream = this.canvas.captureStream(30); // 30 fps
+      const canvasStream = this.canvas.captureStream(15); // 15 fps for smaller file size
       const audioTrack = this.audioContext!.createMediaStreamDestination();
 
       // Connect audio for recording - now safe since it's a new audio element
@@ -390,7 +364,7 @@ export class PodcastVideoRenderer {
 
       this.mediaRecorder = new MediaRecorder(combinedStream, {
         mimeType,
-        videoBitsPerSecond: 5000000, // 5 Mbps
+        videoBitsPerSecond: 1000000, // 1 Mbps (reduced from 5 Mbps for smaller files)
       });
 
       this.recordedChunks = [];

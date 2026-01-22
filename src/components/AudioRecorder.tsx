@@ -5,6 +5,7 @@ interface AudioRecorderProps {
   maxDuration?: number; // in seconds
   minDuration?: number; // in seconds
   disabled?: boolean;
+  shouldReset?: boolean; // Add prop to clear recorder when file is uploaded elsewhere
 }
 
 export function AudioRecorder({
@@ -12,6 +13,7 @@ export function AudioRecorder({
   maxDuration = 90,
   minDuration = 0,
   disabled = false,
+  shouldReset = false,
 }: AudioRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -24,6 +26,18 @@ export function AudioRecorder({
   const timerRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Reset recorder when shouldReset prop changes
+  useEffect(() => {
+    if (shouldReset && audioUrl) {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+      setAudioUrl(null);
+      setDuration(0);
+      setError(null);
+    }
+  }, [shouldReset, audioUrl]);
 
   // Cleanup on unmount
   useEffect(() => {

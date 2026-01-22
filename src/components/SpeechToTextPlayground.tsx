@@ -256,6 +256,7 @@ export function SpeechToTextPlayground({
             <div>
               <AudioRecorder
                 onRecordingComplete={handleRecordingComplete}
+                shouldReset={!isUsingRecorder}
               />
             </div>
 

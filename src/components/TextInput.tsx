@@ -58,19 +58,70 @@ export function TextInput({
 
   const isPlaying = state === 'synthesizing' || state === 'playing';
 
+  // Sync scroll position between textarea and highlight overlay
+  const handleScroll = () => {
+    if (textareaRef.current && highlightRef.current) {
+      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
+      highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  };
+
   // Auto-scroll to keep current word visible
   useEffect(() => {
     if (currentWordIndex >= 0 && currentWordIndex < wordBoundaries.length) {
       const boundary = wordBoundaries[currentWordIndex];
-      if (textareaRef.current) {
+      if (textareaRef.current && highlightRef.current) {
         const textarea = textareaRef.current;
-        const textBeforeBoundary = text.substring(0, boundary.offset);
-        const lines = textBeforeBoundary.split('\n').length;
-        const lineHeight = 24; // Approximate line height
-        const scrollPosition = (lines - 1) * lineHeight;
 
-        // Scroll to make current word visible
-        textarea.scrollTop = Math.max(0, scrollPosition - textarea.clientHeight / 2);
+        // Create a temporary element to measure the exact position of the word
+        const measureDiv = document.createElement('div');
+        measureDiv.style.cssText = window.getComputedStyle(textarea).cssText;
+        measureDiv.style.position = 'absolute';
+        measureDiv.style.visibility = 'hidden';
+        measureDiv.style.height = 'auto';
+        measureDiv.style.width = `${textarea.clientWidth - 24}px`; // Account for padding (12px * 2)
+        measureDiv.style.whiteSpace = 'pre-wrap';
+        measureDiv.style.wordWrap = 'break-word';
+        measureDiv.style.font = window.getComputedStyle(textarea).font;
+        measureDiv.style.lineHeight = window.getComputedStyle(textarea).lineHeight;
+        measureDiv.style.padding = '0';
+
+        document.body.appendChild(measureDiv);
+
+        // Get text up to the word boundary
+        const textBeforeWord = text.substring(0, boundary.offset);
+        measureDiv.textContent = textBeforeWord;
+        const wordTopPosition = measureDiv.scrollHeight;
+
+        // Get text including the word
+        const textIncludingWord = text.substring(0, boundary.offset + boundary.length);
+        measureDiv.textContent = textIncludingWord;
+        const wordBottomPosition = measureDiv.scrollHeight;
+
+        document.body.removeChild(measureDiv);
+
+        // Get current scroll position and viewport dimensions
+        const scrollTop = textarea.scrollTop;
+        const viewportHeight = textarea.clientHeight;
+        const viewportBottom = scrollTop + viewportHeight;
+
+        const padding = 50; // Pixels of padding around the word
+
+        // Check if word is above the viewport
+        if (wordTopPosition < scrollTop + padding) {
+          // Scroll up to show the word with padding from top
+          textarea.scrollTop = Math.max(0, wordTopPosition - padding);
+        }
+        // Check if word is below the viewport
+        else if (wordBottomPosition > viewportBottom - padding) {
+          // Scroll down to show the word with padding from bottom
+          textarea.scrollTop = wordBottomPosition - viewportHeight + padding;
+        }
+        // Word is already visible - no scroll needed
+
+        // Sync highlight overlay scroll
+        highlightRef.current.scrollTop = textarea.scrollTop;
+        highlightRef.current.scrollLeft = textarea.scrollLeft;
       }
     }
   }, [currentWordIndex, wordBoundaries, text]);
@@ -267,7 +318,7 @@ export function TextInput({
         {currentWordIndex >= 0 && (
           <div
             ref={highlightRef}
-            className="absolute inset-0 px-3 py-2 pointer-events-none overflow-hidden whitespace-pre-wrap break-words font-mono text-base leading-6 text-transparent"
+            className="absolute inset-0 px-3 py-2 pointer-events-none overflow-auto whitespace-pre-wrap break-words font-mono text-base leading-6 text-transparent"
             style={{ zIndex: 1 }}
           >
             {getHighlightedText()}
@@ -279,6 +330,7 @@ export function TextInput({
           ref={textareaRef}
           value={displayText}
           onChange={(e) => !showSSML && onTextChange(e.target.value)}
+          onScroll={handleScroll}
           placeholder="Enter text here to convert to speech..."
           readOnly={showSSML}
           className="w-full h-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-base leading-6"

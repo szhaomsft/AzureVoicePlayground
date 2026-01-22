@@ -211,8 +211,8 @@ export function PodcastAgentPlayground({
       const renderer = new PodcastVideoRenderer({
         audioUrl: currentGeneration.output.audioFileUrl,
         podcastTitle,
-        width: 1920,
-        height: 1080,
+        width: 1280,
+        height: 720,
         onProgress: (progress) => {
           setVideoProgress(progress);
         },
