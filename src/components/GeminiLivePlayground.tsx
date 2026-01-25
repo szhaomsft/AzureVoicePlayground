@@ -3,6 +3,47 @@ import { GeminiClient, type ConnectionStatus } from '../lib/geminiLive/geminiCli
 import { GeminiAudioHandler } from '../lib/geminiLive/audioHandler';
 import { SAMPLE_PRODUCT_DATA } from '../data/productData';
 
+// VAD type for the dynamically loaded library
+type MicVADInstance = {
+  start: () => void;
+  pause: () => void;
+  destroy: () => void;
+};
+
+// Declare the global vad object loaded from script
+declare global {
+  interface Window {
+    vad?: {
+      MicVAD: {
+        new: (options: Record<string, unknown>) => Promise<MicVADInstance>;
+      };
+    };
+  }
+}
+
+// Load VAD script dynamically
+async function loadVADScript(): Promise<void> {
+  if (window.vad) return;
+
+  // First load onnxruntime-web
+  await new Promise<void>((resolve, reject) => {
+    const ortScript = document.createElement('script');
+    ortScript.src = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/ort.min.js';
+    ortScript.onload = () => resolve();
+    ortScript.onerror = () => reject(new Error('Failed to load ONNX Runtime script'));
+    document.head.appendChild(ortScript);
+  });
+
+  // Then load VAD
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.30/dist/bundle.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load VAD script'));
+    document.head.appendChild(script);
+  });
+}
+
 interface Message {
   id: string;
   type: 'user' | 'assistant' | 'system';
@@ -23,11 +64,17 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
   const [textInput, setTextInput] = useState('');
   const [enableProductLookup, setEnableProductLookup] = useState(false);
   const [interruptionSensitivity, setInterruptionSensitivity] = useState<'low' | 'medium' | 'high'>('medium');
-  const [systemPrompt, setSystemPrompt] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState(`You are a helpful voice assistant. You help customers find products.
+
+When asked about products, use the get_product_inventory tool to retrieve the product catalog. Be conversational and helpful.
+
+Keep your responses concise and natural for voice interaction. Focus on the most relevant information.`);
   const [error, setError] = useState<string | null>(null);
+  const [latency, setLatency] = useState<number | null>(null);
 
   const clientRef = useRef<GeminiClient | null>(null);
   const audioHandlerRef = useRef<GeminiAudioHandler | null>(null);
+  const vadRef = useRef<MicVADInstance | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const circleRef = useRef<HTMLDivElement | null>(null);
 
@@ -65,6 +112,9 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
       if (audioHandlerRef.current) {
         audioHandlerRef.current.cleanup();
       }
+      if (vadRef.current) {
+        vadRef.current.destroy();
+      }
     };
   }, []);
 
@@ -96,6 +146,10 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
     if (audioHandlerRef.current) {
       audioHandlerRef.current.cleanup();
     }
+    if (vadRef.current) {
+      vadRef.current.destroy();
+      vadRef.current = null;
+    }
 
     // Reset state
     transcriptRef.current = {
@@ -121,6 +175,10 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
       interruptionSensitivity,
       systemPrompt: systemPrompt.trim() || undefined,
       onAudioData: (audioData) => {
+        // Pause VAD during playback to avoid detecting AI's voice
+        if (vadRef.current) {
+          vadRef.current.pause();
+        }
         audioHandler.queueAudioForPlayback(audioData);
       },
       onInputTranscript: (text) => {
@@ -177,6 +235,10 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
         });
       },
       onTurnComplete: () => {
+        // Resume VAD for next turn
+        if (vadRef.current) {
+          vadRef.current.start();
+        }
         // Reset transcript state for next turn
         transcriptRef.current = {
           inputTranscript: '',
@@ -187,6 +249,10 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
       },
       onInterrupted: () => {
         audioHandler.stopPlayback();
+        // Resume VAD after interruption
+        if (vadRef.current) {
+          vadRef.current.start();
+        }
         transcriptRef.current.outputTranscript = '';
         transcriptRef.current.outputMessageId = null;
 
@@ -209,7 +275,12 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
             inputMessageId: null,
             outputMessageId: null,
           };
+          setLatency(null);
         }
+      },
+      onLatencyMeasured: (latencyMs) => {
+        setLatency(latencyMs);
+        console.log(`[Gemini] Response latency: ${latencyMs.toFixed(0)}ms`);
       },
     });
 
@@ -221,7 +292,46 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
 
     try {
       setError(null);
+
+      // Pre-load VAD script while connecting to Gemini (in parallel)
+      const vadLoadPromise = loadVADScript();
+
       await client.connect();
+
+      // Initialize VAD for speech end detection (latency measurement)
+      await vadLoadPromise;
+      if (!window.vad) {
+        console.warn('[VAD] Failed to load VAD library, latency measurement disabled');
+      } else {
+        const basePath = import.meta.env.BASE_URL || '/';
+        const vad = await window.vad.MicVAD.new({
+          onSpeechStart: () => {
+            console.log('[VAD] Speech start detected');
+          },
+          onSpeechEnd: () => {
+            // Mark speech end time for latency measurement
+            console.log('[VAD] Speech end detected');
+            clientRef.current?.markSpeechEnd();
+          },
+          onVADMisfire: () => {
+            // Speech was too short, but still mark it as speech end for latency
+            console.log('[VAD] Speech too short (misfire), still marking end');
+            clientRef.current?.markSpeechEnd();
+          },
+          model: 'v5',
+          // Lower threshold for detecting speech end
+          minSpeechFrames: 3,
+          // Faster speech end detection
+          negativeSpeechThreshold: 0.5,
+          // Load from local public folder
+          onnxWASMBasePath: `${window.location.origin}${basePath}onnx/`,
+          baseAssetPath: `${window.location.origin}${basePath}vad/`,
+        });
+        vadRef.current = vad;
+        vad.start();
+        console.log('[VAD] Voice Activity Detection initialized');
+      }
+
       // Auto-start recording
       await startRecording();
     } catch (err) {
@@ -232,9 +342,14 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
   async function handleDisconnect() {
     if (audioHandlerRef.current) {
       audioHandlerRef.current.stopRecording();
+      audioHandlerRef.current.stopPlayback();
     }
     if (clientRef.current) {
       clientRef.current.disconnect();
+    }
+    if (vadRef.current) {
+      vadRef.current.destroy();
+      vadRef.current = null;
     }
     setIsRecording(false);
   }
@@ -515,40 +630,16 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
           <div className="border-t border-gray-200 pt-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">System Prompt</label>
 
-            {/* Preset Selector */}
-            <select
-              onChange={(e) => {
-                if (e.target.value === 'custom') return;
-                setSystemPrompt(e.target.value);
-              }}
-              disabled={status === 'connected'}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 mb-2"
-            >
-              <option value="">Default (based on product lookup setting)</option>
-              <option value="You are a helpful and friendly AI assistant. Be concise and natural in your responses.
-
-Please only respond in English.">Voice Live Default</option>
-              <option value="You are a helpful voice assistant. You help customers find products.
-
-When asked about products, use the get_product_inventory tool to retrieve the product catalog. Be conversational and helpful.
-
-Keep your responses concise and natural for voice interaction. Focus on the most relevant information.">Gemini Product Assistant</option>
-              <option value="You are a helpful voice assistant for testing Gemini Live API integration with Azure TTS Playground.
-
-Keep your responses concise and natural for voice interaction.">Gemini Testing Assistant</option>
-              <option value="custom">Custom (edit below)</option>
-            </select>
-
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               disabled={status === 'connected'}
-              placeholder="Leave empty for default prompt"
+              placeholder="Enter custom instructions for Gemini's behavior"
               rows={6}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 resize-none font-mono"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Select a preset or write custom instructions for Gemini's behavior
+              Custom instructions for Gemini's behavior
             </p>
           </div>
 

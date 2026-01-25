@@ -16,6 +16,7 @@ export interface GeminiClientConfig {
   onToolCall: (toolName: string) => void;
   onError: (error: string) => void;
   onStatusChange: (status: ConnectionStatus) => void;
+  onLatencyMeasured?: (latencyMs: number) => void;
   enableProductLookup?: boolean;
   interruptionSensitivity?: 'low' | 'medium' | 'high';
   systemPrompt?: string;
@@ -35,6 +36,10 @@ export class GeminiClient {
   private productData: string = '';
   private ai: GoogleGenAI;
 
+  // Latency tracking
+  private userSpeechEndTime: number | null = null;
+  private firstAudioReceived: boolean = false;
+
   constructor(config: GeminiClientConfig) {
     this.config = config;
     this.ai = new GoogleGenAI({ apiKey: config.apiKey });
@@ -42,6 +47,13 @@ export class GeminiClient {
 
   setProductData(data: string) {
     this.productData = data;
+  }
+
+  // Called by external VAD when user speech ends
+  markSpeechEnd(): void {
+    this.userSpeechEndTime = performance.now();
+    this.firstAudioReceived = false;
+    console.log('[Gemini] Speech end detected by VAD');
   }
 
   async connect(): Promise<void> {
@@ -177,6 +189,9 @@ Keep your responses concise and natural for voice interaction.`
       if (content.interrupted) {
         console.log('[Gemini] Generation was interrupted by user');
         this.config.onInterrupted();
+        // Reset latency tracking on interruption
+        this.userSpeechEndTime = null;
+        this.firstAudioReceived = false;
         return;
       }
 
@@ -209,6 +224,20 @@ Keep your responses concise and natural for voice interaction.`
 
         // Handle audio data
         if (part.inlineData) {
+          // Measure latency on first audio received
+          if (!this.firstAudioReceived) {
+            if (this.userSpeechEndTime !== null) {
+              const latencyMs = performance.now() - this.userSpeechEndTime;
+              this.firstAudioReceived = true;
+              console.log(`[Gemini] Response latency: ${latencyMs.toFixed(0)}ms`);
+              this.config.onLatencyMeasured?.(latencyMs);
+            } else {
+              // VAD didn't detect speech end, skip latency for this turn
+              this.firstAudioReceived = true;
+              console.log('[Gemini] No speech end detected by VAD, skipping latency measurement');
+            }
+          }
+
           const base64Audio = part.inlineData.data;
           const audioBuffer = this.base64ToArrayBuffer(base64Audio);
           this.config.onAudioData(audioBuffer);
@@ -217,6 +246,9 @@ Keep your responses concise and natural for voice interaction.`
 
       // Handle turn complete
       if (content.turnComplete) {
+        // Reset latency tracking for next turn
+        this.userSpeechEndTime = null;
+        this.firstAudioReceived = false;
         this.config.onTurnComplete();
       }
     } catch (error) {
@@ -253,16 +285,21 @@ Keep your responses concise and natural for voice interaction.`
   sendAudio(audioData: ArrayBuffer): void {
     if (!this.session) return;
 
-    // Convert ArrayBuffer to base64 string for the SDK
-    const base64Data = this.arrayBufferToBase64(audioData);
+    try {
+      // Convert ArrayBuffer to base64 string for the SDK
+      const base64Data = this.arrayBufferToBase64(audioData);
 
-    // Send audio using the format expected by the Gemini Live API
-    this.session.sendRealtimeInput({
-      audio: {
-        data: base64Data,
-        mimeType: `audio/pcm;rate=${INPUT_SAMPLE_RATE}`
-      }
-    });
+      // Send audio using the format expected by the Gemini Live API
+      this.session.sendRealtimeInput({
+        audio: {
+          data: base64Data,
+          mimeType: `audio/pcm;rate=${INPUT_SAMPLE_RATE}`
+        }
+      });
+    } catch (error) {
+      // Silently ignore errors when session is closing
+      console.debug('[Gemini] Failed to send audio:', error);
+    }
   }
 
   sendText(text: string): void {
