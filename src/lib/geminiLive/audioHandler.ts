@@ -23,7 +23,7 @@ export class GeminiAudioHandler {
   // Animation
   private circleElement: HTMLElement | null = null;
   private animationFrameId: number | null = null;
-  private dataArray: Uint8Array | null = null;
+  private dataArray: Uint8Array<ArrayBuffer> | null = null;
   private currentAnimationType: 'record' | 'play' | null = null;
 
   constructor() {
