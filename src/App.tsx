@@ -16,6 +16,7 @@ import { VoiceLiveChatPlayground } from './components/VoiceLiveChatPlayground';
 import { VoiceCreationPlayground } from './components/VoiceCreationPlayground';
 import { VideoTranslationPlayground } from './components/VideoTranslationPlayground';
 import { PodcastAgentPlayground } from './components/PodcastAgentPlayground';
+import { GeminiLivePlayground } from './components/GeminiLivePlayground';
 
 // Valid playground modes for URL hash routing
 const VALID_MODES: PlaygroundMode[] = [
@@ -28,6 +29,7 @@ const VALID_MODES: PlaygroundMode[] = [
   'voice-live-chat',
   'voice-live-translator',
   'podcast-agent',
+  'gemini-live',
 ];
 
 // Get initial playground mode from URL hash
@@ -42,6 +44,10 @@ function getInitialModeFromHash(): PlaygroundMode {
 function App() {
   const { settings, updateSettings, isConfigured } = useSettings();
   const [activePlayground, setActivePlayground] = useState<PlaygroundMode>(getInitialModeFromHash);
+
+  // Check for geminiLive feature flag in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const geminiLiveEnabled = urlParams.has('geminilive');
 
   // Update URL hash when playground changes
   useEffect(() => {
@@ -155,6 +161,8 @@ function App() {
             clearHistory={podcastHistory.clearHistory}
           />
         );
+      case 'gemini-live':
+        return <GeminiLivePlayground />;
       default:
         return null;
     }
@@ -168,6 +176,7 @@ function App() {
         onModeChange={setActivePlayground}
         settings={settings}
         onSettingsChange={updateSettings}
+        geminiLiveEnabled={geminiLiveEnabled}
       />
 
       {/* Main Playground Area */}

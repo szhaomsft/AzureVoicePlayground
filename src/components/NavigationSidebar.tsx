@@ -7,6 +7,7 @@ interface NavigationSidebarProps {
   onModeChange: (mode: PlaygroundMode) => void;
   settings: AzureSettings;
   onSettingsChange: (settings: Partial<AzureSettings>) => void;
+  geminiLiveEnabled?: boolean;
 }
 
 const ALL_TTS_REGIONS = [
@@ -143,6 +144,16 @@ const playgroundModes: { mode: PlaygroundMode; label: string; icon: React.ReactN
       </svg>
     ),
   },
+  {
+    mode: 'gemini-live',
+    label: 'Gemini Live',
+    category: 'agent',
+    icon: (
+      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+  },
 ];
 
 export function NavigationSidebar({
@@ -150,12 +161,13 @@ export function NavigationSidebar({
   onModeChange,
   settings,
   onSettingsChange,
+  geminiLiveEnabled = false,
 }: NavigationSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showSecurityNotice, setShowSecurityNotice] = useState(false);
 
   // Determine if current mode is a Voice Agent mode (has its own config panel)
-  const isAgentMode = activeMode === 'voice-live-chat' || activeMode === 'voice-live-translator';
+  const isAgentMode = activeMode === 'voice-live-chat' || activeMode === 'voice-live-translator' || activeMode === 'gemini-live';
 
   return (
     <div
@@ -234,7 +246,7 @@ export function NavigationSidebar({
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">Voice Agent</p>
         )}
         <nav className="space-y-1">
-          {playgroundModes.filter(m => m.category === 'agent').map(({ mode, label, icon }) => (
+          {playgroundModes.filter(m => m.category === 'agent' && (m.mode !== 'gemini-live' || geminiLiveEnabled)).map(({ mode, label, icon }) => (
             <div key={mode} className="flex items-center gap-1">
               <button
                 onClick={() => onModeChange(mode)}
