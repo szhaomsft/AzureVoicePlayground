@@ -19,7 +19,7 @@ export function useMultiTalkerTTS({ apiKey, region }: UseMultiTalkerTTSProps) {
   const audioChunksRef = useRef<Uint8Array[]>([]);
   const playbackStartTimeRef = useRef<number>(0);
   const isPlayingRef = useRef<boolean>(false);
-  const stopTimeoutRef = useRef<number | null>(null);
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const initializeSynthesizer = useCallback((voiceName: string) => {
     if (synthesizerRef.current) {

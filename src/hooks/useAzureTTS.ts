@@ -27,7 +27,7 @@ export function useAzureTTS(settings: AzureSettings) {
   const synthesisCompleteRef = useRef<boolean>(false);
   const useFallbackPlaybackRef = useRef<boolean>(false);
   const inputTextRef = useRef<string>('');
-  const stopTimeoutRef = useRef<number | null>(null);
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const initializeSynthesizer = useCallback(() => {
     if (synthesizerRef.current) {
