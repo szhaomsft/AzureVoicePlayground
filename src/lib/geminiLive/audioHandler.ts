@@ -1,7 +1,10 @@
 // Audio handling for Gemini Live
 // Uses Web Audio API for browser-based audio processing
 
-const SAMPLE_RATE = 24000;
+// Input sample rate (microphone) - Gemini expects 16kHz for input
+export const INPUT_SAMPLE_RATE = 16000;
+// Output sample rate (playback) - Gemini outputs 24kHz audio
+export const OUTPUT_SAMPLE_RATE = 24000;
 const BUFFER_SIZE = 4096;
 
 export class GeminiAudioHandler {
@@ -27,8 +30,8 @@ export class GeminiAudioHandler {
   private currentAnimationType: 'record' | 'play' | null = null;
 
   constructor() {
-    this.recordingContext = new AudioContext({ sampleRate: SAMPLE_RATE });
-    this.playbackContext = new AudioContext({ sampleRate: SAMPLE_RATE });
+    this.recordingContext = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
+    this.playbackContext = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE });
   }
 
   setCircleElement(element: HTMLElement | null) {
@@ -42,7 +45,7 @@ export class GeminiAudioHandler {
       // Request microphone access
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: SAMPLE_RATE,
+          sampleRate: INPUT_SAMPLE_RATE,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -141,7 +144,7 @@ export class GeminiAudioHandler {
       }
 
       // Create audio buffer
-      const audioBuffer = this.playbackContext.createBuffer(1, float32Data.length, SAMPLE_RATE);
+      const audioBuffer = this.playbackContext.createBuffer(1, float32Data.length, OUTPUT_SAMPLE_RATE);
       audioBuffer.getChannelData(0).set(float32Data);
 
       // Create buffer source
@@ -197,7 +200,7 @@ export class GeminiAudioHandler {
       };
 
       // Calculate when this chunk ends for next scheduling
-      const chunkDuration = float32Data.length / SAMPLE_RATE;
+      const chunkDuration = float32Data.length / OUTPUT_SAMPLE_RATE;
       this.nextPlayTime += chunkDuration;
 
     } catch (error) {
