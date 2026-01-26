@@ -1,6 +1,8 @@
 import { pcm16BytesToFloat32LE } from './pcm16';
 
 export type VolumeCallback = (volume: number) => void;
+export type PlaybackCompleteCallback = () => void;
+export type PlaybackStartCallback = (actualStartTime: number) => void;
 
 export class Pcm16Player {
   private audioContext: AudioContext;
@@ -10,6 +12,10 @@ export class Pcm16Player {
   private sources: AudioBufferSourceNode[] = [];
   private animationFrameId: number | null = null;
   private onVolume: VolumeCallback | null = null;
+  private onPlaybackComplete: PlaybackCompleteCallback | null = null;
+  private onPlaybackStart: PlaybackStartCallback | null = null;
+  private hasStartedPlayback = false;
+  private firstChunkQueueTime: number = 0;
 
   constructor() {
     this.audioContext = new AudioContext();
@@ -22,6 +28,14 @@ export class Pcm16Player {
 
   setVolumeCallback(callback: VolumeCallback | null) {
     this.onVolume = callback;
+  }
+
+  setPlaybackCompleteCallback(callback: PlaybackCompleteCallback | null) {
+    this.onPlaybackComplete = callback;
+  }
+
+  setPlaybackStartCallback(callback: PlaybackStartCallback | null) {
+    this.onPlaybackStart = callback;
   }
 
   async resume(): Promise<void> {
@@ -60,6 +74,10 @@ export class Pcm16Player {
         if (this.onVolume) {
           this.onVolume(0); // Reset to zero when done
         }
+        // Notify that playback is complete
+        if (this.onPlaybackComplete) {
+          this.onPlaybackComplete();
+        }
       }
     };
 
@@ -77,9 +95,30 @@ export class Pcm16Player {
     src.connect(this.analyser);
 
     const now = this.audioContext.currentTime;
-    if (this.nextStartTime < now) this.nextStartTime = now;
+
+    // Add initial buffer for first chunk (like Gemini does)
+    if (!this.hasStartedPlayback) {
+      this.nextStartTime = now + 0.05; // 50ms initial buffer
+    } else if (this.nextStartTime < now) {
+      this.nextStartTime = now;
+    }
+
     const startAt = this.nextStartTime;
     this.nextStartTime += buffer.duration;
+
+    // Notify when first audio actually starts playing
+    if (!this.hasStartedPlayback) {
+      this.hasStartedPlayback = true;
+      this.firstChunkQueueTime = performance.now();
+      const delayUntilPlayback = (startAt - now) * 1000; // Convert to ms
+      console.log(`[PCM Player] First chunk queued - will start in ${delayUntilPlayback.toFixed(0)}ms (buffer duration: ${(buffer.duration * 1000).toFixed(0)}ms)`);
+
+      // Call the callback immediately with the calculated actual start time
+      if (this.onPlaybackStart) {
+        const actualStartTime = this.firstChunkQueueTime + delayUntilPlayback;
+        this.onPlaybackStart(actualStartTime);
+      }
+    }
 
     src.onended = () => {
       this.sources = this.sources.filter((s) => s !== src);
@@ -105,6 +144,7 @@ export class Pcm16Player {
     }
     this.sources = [];
     this.nextStartTime = 0;
+    this.hasStartedPlayback = false; // Reset for next turn
     if (this.onVolume) {
       this.onVolume(0); // Reset to zero
     }

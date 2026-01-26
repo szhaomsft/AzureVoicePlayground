@@ -14,6 +14,47 @@ import { VoiceLiveChatClient, type ChatState } from '../lib/voiceLive/chatClient
 import { ChatAudioHandler } from '../lib/voiceLive/audio/chatAudioHandler';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
+// VAD type for the dynamically loaded library
+type MicVADInstance = {
+  start: () => void;
+  pause: () => void;
+  destroy: () => void;
+};
+
+// Declare the global vad object loaded from script
+declare global {
+  interface Window {
+    vad?: {
+      MicVAD: {
+        new: (options: Record<string, unknown>) => Promise<MicVADInstance>;
+      };
+    };
+  }
+}
+
+// Load VAD script dynamically
+async function loadVADScript(): Promise<void> {
+  if (window.vad) return;
+
+  // First load onnxruntime-web
+  await new Promise<void>((resolve, reject) => {
+    const ortScript = document.createElement('script');
+    ortScript.src = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/ort.min.js';
+    ortScript.onload = () => resolve();
+    ortScript.onerror = () => reject(new Error('Failed to load ONNX Runtime script'));
+    document.head.appendChild(ortScript);
+  });
+
+  // Then load VAD
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.30/dist/bundle.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load VAD script'));
+    document.head.appendChild(script);
+  });
+}
+
 interface VoiceLiveChatPlaygroundProps {
   endpoint: string;
   apiKey: string;
@@ -44,6 +85,9 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
   const [sessionId, setSessionId] = useState('');
   const [textInput, setTextInput] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showResponseLatency, setShowResponseLatency] = useState(() => {
+    return localStorage.getItem('voicelive.show-latency') === 'true';
+  });
   const [avatarStream, setAvatarStream] = useState<MediaStream | null>(null);
 
   const chatClientRef = useRef<VoiceLiveChatClient | null>(null);
@@ -51,6 +95,9 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const circleRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const showResponseLatencyRef = useRef<boolean>(showResponseLatency);
+  const vadRef = useRef<MicVADInstance | null>(null);
+  const vadSilenceDurationRef = useRef<number>(500); // Store VAD silence duration
 
   const handleAvatarTrack = useCallback((event: RTCTrackEvent) => {
     console.log('[Playground] Received avatar track:', event.track.kind, 'streams:', event.streams.length);
@@ -82,6 +129,25 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
         setSessionId(state.sessionId);
       },
       onAvatarTrack: handleAvatarTrack,
+      onResponseComplete: () => {
+        // Add latency message when response is complete
+        if (showResponseLatencyRef.current) {
+          const totalLatency = chatClientRef.current?.getCurrentTurnLatency();
+          const vadDelay = vadSilenceDurationRef.current;
+          console.log(`[VoiceLive] onResponseComplete - Total latency: ${totalLatency}ms, VAD delay: ${vadDelay}ms`);
+          if (totalLatency !== null && totalLatency !== undefined) {
+            const total = Math.round(totalLatency + vadDelay);
+            chatClientRef.current?.addStatusMessage(
+              `Response latency: ${Math.round(totalLatency)}ms (Voice Live) + ${vadDelay}ms (VAD) = ${total}ms (total)`
+            );
+          }
+        }
+      },
+      onResponseStart: () => {
+        // Pause VAD during assistant playback to prevent it from picking up the audio
+        console.log('[VAD] 🔇 Pausing VAD during assistant playback');
+        vadRef.current?.pause();
+      },
     });
   }
 
@@ -92,11 +158,18 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
     localStorage.setItem('voicelive.chat.config', JSON.stringify(config));
   }, [config]);
 
+  // Save latency setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('voicelive.show-latency', showResponseLatency.toString());
+    showResponseLatencyRef.current = showResponseLatency; // Update ref
+  }, [showResponseLatency]);
+
   // Cleanup on unmount - disconnect when switching playgrounds
   useEffect(() => {
     return () => {
       const client = chatClientRef.current;
       const audioHandler = audioHandlerRef.current;
+      const vad = vadRef.current;
 
       if (client?.snapshot.isConnected) {
         console.log('[VoiceLive Chat] Disconnecting on unmount');
@@ -106,8 +179,34 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
       if (audioHandler) {
         audioHandler.close().catch(console.error);
       }
+
+      if (vad) {
+        vad.destroy();
+      }
     };
   }, []);
+
+  // Set up playback complete callback to resume VAD when audio finishes
+  useEffect(() => {
+    chatClient.setPlaybackCompleteCallback(() => {
+      console.log('[VAD] 🎤 Playback complete, resuming VAD');
+      vadRef.current?.start();
+    });
+
+    chatClient.setPlaybackStartCallback((actualStartTime: number) => {
+      // Measure latency using the accurate audio context start time
+      const speechEndTime = chatClientRef.current?.getUserSpeechEndTime();
+      if (speechEndTime !== null && speechEndTime !== undefined) {
+        const actualLatency = actualStartTime - speechEndTime;
+        chatClientRef.current?.setCurrentTurnLatency(actualLatency);
+
+        // @ts-ignore - fractionalSecondDigits is valid but not in TypeScript types
+        const timestamp = new Date(actualStartTime).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+        console.log(`🔊 [VoiceLive] Audio playback will start at ${timestamp}`);
+        console.log(`   - Response latency: ${actualLatency.toFixed(0)}ms (from VAD speech end to playback start)`);
+      }
+    });
+  }, [chatClient]);
 
   // Auto-scroll messages
   useEffect(() => {
@@ -161,8 +260,79 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
       await chatClient.connect({ ...config, endpoint, apiKey });
       setStatusText('Connected');
 
+      // Initialize VAD for speech end detection (latency measurement)
+      const vadLoadPromise = loadVADScript();
+
       // Start recording automatically
       await startRecording();
+
+      // Set up VAD after recording starts
+      await vadLoadPromise;
+      if (!window.vad) {
+        console.warn('[VAD] Failed to load VAD library, latency measurement will not include client VAD delay');
+      } else {
+        console.log('[VAD] Starting VAD initialization...');
+        const basePath = import.meta.env.BASE_URL || '/';
+        let lastAudioChunkTime: number | null = null;
+        const negativeSpeechThreshold = 0.5;
+        const vadSilenceDurationMs = Math.round(negativeSpeechThreshold * 1000);
+        vadSilenceDurationRef.current = vadSilenceDurationMs;
+
+        try {
+          const vad = await window.vad.MicVAD.new({
+            onSpeechStart: () => {
+              lastAudioChunkTime = performance.now();
+              console.log(`[VAD] ✅ Speech start detected`);
+            },
+            onFrameProcessed: (probs: Record<string, number>) => {
+              if (probs.isSpeech > 0.5) {
+                const prevTime = lastAudioChunkTime;
+                lastAudioChunkTime = performance.now();
+                // Log when we detect speech frames to see if we're missing any
+                if (prevTime !== null) {
+                  const gap = lastAudioChunkTime - prevTime;
+                  if (gap > 100) {
+                    console.log(`[VAD] Large gap between speech frames: ${gap.toFixed(0)}ms`);
+                  }
+                }
+              }
+            },
+            onSpeechEnd: () => {
+              const vadDetectionTime = performance.now();
+              // @ts-ignore - fractionalSecondDigits is valid but not in TypeScript types
+              const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+
+              if (lastAudioChunkTime !== null) {
+                const actualVadDelay = vadDetectionTime - lastAudioChunkTime;
+                vadSilenceDurationRef.current = Math.round(actualVadDelay);
+                console.log(`[VAD] ✅ Speech end detected at ${timestamp} - VAD delay: ${actualVadDelay.toFixed(0)}ms (stored in ref)`);
+              } else {
+                console.log(`[VAD] ⚠️ Speech end detected at ${timestamp} - no lastAudioChunkTime, using default: ${vadSilenceDurationMs}ms`);
+              }
+
+              chatClient.markSpeechEndByClientVAD();
+              lastAudioChunkTime = null;
+            },
+            model: 'v5',
+            // Speech detection thresholds
+            positiveSpeechThreshold: 0.8,
+            negativeSpeechThreshold: negativeSpeechThreshold,
+            // Timing parameters (in milliseconds)
+            redemptionMs: 500,      // Wait 500ms of silence before ending speech (default: 1400ms)
+            preSpeechPadMs: 100,    // Prepend 100ms of audio to speech segment (default: 800ms)
+            minSpeechMs: 250,       // Minimum speech duration (default: 400ms)
+            // Load from local public folder (same as Gemini)
+            onnxWASMBasePath: `${window.location.origin}${basePath}onnx/`,
+            baseAssetPath: `${window.location.origin}${basePath}vad/`,
+          });
+
+          vadRef.current = vad;
+          vad.start();
+          console.log('[VAD] ✅ VAD initialized and started for latency measurement');
+        } catch (error) {
+          console.error('[VAD] ❌ Failed to initialize VAD:', error);
+        }
+      }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       console.error('[Playground] Connection error:', errorMsg);
@@ -174,6 +344,10 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
     setStatusText('Disconnecting...');
     try {
       await stopRecording();
+      if (vadRef.current) {
+        vadRef.current.destroy();
+        vadRef.current = null;
+      }
       await chatClient.disconnect();
       setAvatarStream(null);
       setStatusText('Disconnected');
@@ -789,6 +963,16 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm text-gray-700">Echo cancellation</span>
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={showResponseLatency}
+                      onChange={(e) => setShowResponseLatency(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Show response latency</span>
                   </label>
                 </div>
               </div>

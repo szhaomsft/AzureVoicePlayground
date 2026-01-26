@@ -53,7 +53,9 @@ export class GeminiClient {
   markSpeechEnd(): void {
     this.userSpeechEndTime = performance.now();
     this.firstAudioReceived = false;
-    console.log('[Gemini] Speech end detected by VAD');
+    // @ts-ignore - fractionalSecondDigits is valid but not in TypeScript types
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+    console.log(`🎤 [Gemini] Speech end detected by VAD at ${timestamp}`);
   }
 
   async connect(): Promise<void> {
@@ -226,15 +228,17 @@ Keep your responses concise and natural for voice interaction.`
         if (part.inlineData) {
           // Measure latency on first audio received
           if (!this.firstAudioReceived) {
+            // @ts-ignore - fractionalSecondDigits is valid but not in TypeScript types
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
             if (this.userSpeechEndTime !== null) {
               const latencyMs = performance.now() - this.userSpeechEndTime;
               this.firstAudioReceived = true;
-              console.log(`[Gemini] Response latency: ${latencyMs.toFixed(0)}ms`);
+              console.log(`🔊 [Gemini] First audio chunk received at ${timestamp} - Response latency: ${latencyMs.toFixed(0)}ms`);
               this.config.onLatencyMeasured?.(latencyMs);
             } else {
               // VAD didn't detect speech end, skip latency for this turn
               this.firstAudioReceived = true;
-              console.log('[Gemini] No speech end detected by VAD, skipping latency measurement');
+              console.log(`🔊 [Gemini] First audio chunk received at ${timestamp} (no VAD speech end detected)`);
             }
           }
 

@@ -37,6 +37,8 @@ export type ChatState = {
 export type ChatClientEvents = {
   onState: (next: ChatState) => void;
   onAvatarTrack?: (event: RTCTrackEvent) => void;
+  onResponseComplete?: () => void; // Called when a response is fully complete
+  onResponseStart?: () => void; // Called when response starts (to pause VAD)
 };
 
 function generateId(): string {
@@ -73,6 +75,11 @@ export class VoiceLiveChatClient {
   private currentUserMessageId = '';  // Track the ID of the current user message
   private isResponseInProgress = false;
 
+  // Latency tracking
+  private userSpeechEndTime: number | null = null;
+  private firstAudioReceived = false;
+  private currentTurnLatency: number | null = null;
+
   private readonly events: ChatClientEvents;
 
   constructor(events: ChatClientEvents) {
@@ -83,8 +90,37 @@ export class VoiceLiveChatClient {
     return this.state;
   }
 
+  getCurrentTurnLatency(): number | null {
+    return this.currentTurnLatency;
+  }
+
+  getUserSpeechEndTime(): number | null {
+    return this.userSpeechEndTime;
+  }
+
+  setCurrentTurnLatency(latency: number): void {
+    this.currentTurnLatency = latency;
+  }
+
+  // Called by external VAD when user speech ends (for client-side latency measurement)
+  markSpeechEndByClientVAD(): void {
+    this.userSpeechEndTime = performance.now();
+    this.firstAudioReceived = false;
+    // @ts-ignore - fractionalSecondDigits is valid but not in TypeScript types
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+    console.log(`🎤 [VoiceLive] Speech end detected by client VAD at ${timestamp} - starting latency measurement`);
+  }
+
   setPlaybackVolumeCallback(callback: VolumeCallback | null) {
     this.pcmPlayer.setVolumeCallback(callback);
+  }
+
+  setPlaybackCompleteCallback(callback: () => void) {
+    this.pcmPlayer.setPlaybackCompleteCallback(callback);
+  }
+
+  setPlaybackStartCallback(callback: () => void) {
+    this.pcmPlayer.setPlaybackStartCallback(callback);
   }
 
   private setState(patch: Partial<ChatState>) {
@@ -101,6 +137,11 @@ export class VoiceLiveChatClient {
     };
     this.setState({ messages: [...this.state.messages, message] });
     return message.id;
+  }
+
+  // Public method to add status messages (like latency info)
+  addStatusMessage(content: string): void {
+    this.addMessage('status', content);
   }
 
   private updateLastMessage(content: string) {
@@ -655,6 +696,13 @@ export class VoiceLiveChatClient {
         this.currentFunctionCallId = '';
       },
       onResponseAudioDelta: async (event: ServerEventResponseAudioDelta) => {
+        // Pause VAD on first audio chunk (always, regardless of latency measurement)
+        if (!this.firstAudioReceived) {
+          this.events.onResponseStart?.();
+        }
+
+        this.firstAudioReceived = true;
+
         if (!this.avatarConfig?.enabled) {
           const chunk = event.delta;
           if (chunk instanceof Uint8Array) {
@@ -711,12 +759,21 @@ export class VoiceLiveChatClient {
 
         this.currentResponseText = '';
         this.currentResponseId = '';
+        this.currentResponseMessageId = '';
 
         // If there's a pending function result, send it now
         if (this.pendingFunctionResult) {
           console.log('[VoiceLive Chat] Response complete, sending pending function result...');
           await this.sendPendingFunctionResult();
         }
+
+        // Notify that response is complete (before resetting latency)
+        this.events.onResponseComplete?.();
+
+        // Reset latency tracking for next turn
+        this.userSpeechEndTime = null;
+        this.firstAudioReceived = false;
+        this.currentTurnLatency = null;
       },
       onError: async (args) => {
         console.log('[VoiceLive Chat] Error', args);

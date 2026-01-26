@@ -63,6 +63,9 @@ export function GeminiLivePlayground({}: GeminiLivePlaygroundProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [textInput, setTextInput] = useState('');
   const [enableProductLookup, setEnableProductLookup] = useState(false);
+  const [showResponseLatency, setShowResponseLatency] = useState(() => {
+    return localStorage.getItem('gemini-show-latency') === 'true';
+  });
   const [interruptionSensitivity, setInterruptionSensitivity] = useState<'low' | 'medium' | 'high'>('medium');
   const [systemPrompt, setSystemPrompt] = useState(`You are a helpful voice assistant. You help customers find products.
 
@@ -77,6 +80,10 @@ Keep your responses concise and natural for voice interaction. Focus on the most
   const vadRef = useRef<MicVADInstance | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const circleRef = useRef<HTMLDivElement | null>(null);
+  const vadSilenceDurationRef = useRef<number>(500); // Store VAD silence duration
+  const currentLatencyRef = useRef<number | null>(null); // Store current turn latency
+  const currentVadDelayRef = useRef<number | null>(null); // Store current turn VAD delay
+  const showResponseLatencyRef = useRef<boolean>(showResponseLatency); // Ref for current setting value
 
   // Transcript state tracking
   const transcriptRef = useRef<{
@@ -97,6 +104,12 @@ Keep your responses concise and natural for voice interaction. Focus on the most
       localStorage.setItem('gemini-api-key', apiKey);
     }
   }, [apiKey]);
+
+  // Save latency setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('gemini-show-latency', showResponseLatency.toString());
+    showResponseLatencyRef.current = showResponseLatency; // Update ref
+  }, [showResponseLatency]);
 
   // Auto-scroll messages
   useEffect(() => {
@@ -235,6 +248,17 @@ Keep your responses concise and natural for voice interaction. Focus on the most
         });
       },
       onTurnComplete: () => {
+        // Add latency system message if enabled and latency data available
+        if (showResponseLatencyRef.current && currentLatencyRef.current !== null && currentVadDelayRef.current !== null) {
+          const totalLatency = Math.round(currentLatencyRef.current + currentVadDelayRef.current);
+          addMessage({
+            id: crypto.randomUUID(),
+            type: 'system',
+            content: `Response latency: ${Math.round(currentLatencyRef.current)}ms (Gemini) + ${currentVadDelayRef.current}ms (VAD) = ${totalLatency}ms (total)`,
+            timestamp: new Date(),
+          });
+        }
+
         // Resume VAD for next turn
         if (vadRef.current) {
           vadRef.current.start();
@@ -246,6 +270,9 @@ Keep your responses concise and natural for voice interaction. Focus on the most
           inputMessageId: null,
           outputMessageId: null,
         };
+        // Reset latency tracking for next turn
+        currentLatencyRef.current = null;
+        currentVadDelayRef.current = null;
       },
       onInterrupted: () => {
         audioHandler.stopPlayback();
@@ -279,8 +306,15 @@ Keep your responses concise and natural for voice interaction. Focus on the most
         }
       },
       onLatencyMeasured: (latencyMs) => {
+        const vadSilenceMs = vadSilenceDurationRef.current;
+        const totalLatencyMs = latencyMs + vadSilenceMs;
         setLatency(latencyMs);
-        console.log(`[Gemini] Response latency: ${latencyMs.toFixed(0)}ms`);
+
+        // Store latency for current turn
+        currentLatencyRef.current = latencyMs;
+        currentVadDelayRef.current = vadSilenceMs;
+
+        console.log(`[Gemini] Response latency: ${latencyMs.toFixed(0)}ms (Gemini) + ${vadSilenceMs}ms (VAD silence) = ${totalLatencyMs.toFixed(0)}ms (total from actual speech end)`);
       },
     });
 
@@ -304,25 +338,64 @@ Keep your responses concise and natural for voice interaction. Focus on the most
         console.warn('[VAD] Failed to load VAD library, latency measurement disabled');
       } else {
         const basePath = import.meta.env.BASE_URL || '/';
+        let speechStartTime: number | null = null;
+        let lastAudioChunkTime: number | null = null; // Track when we last received actual audio
+        const negativeSpeechThreshold = 0.5;
+        const vadSilenceDurationMs = Math.round(negativeSpeechThreshold * 1000);
+        vadSilenceDurationRef.current = vadSilenceDurationMs; // Store for latency calculation
         const vad = await window.vad.MicVAD.new({
           onSpeechStart: () => {
-            console.log('[VAD] Speech start detected');
+            // @ts-ignore - fractionalSecondDigits is valid but not in TypeScript types
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+            console.log(`[VAD] Speech start detected at ${timestamp}`);
+            speechStartTime = performance.now();
+            lastAudioChunkTime = performance.now(); // Reset on speech start
           },
-          onSpeechEnd: () => {
-            // Mark speech end time for latency measurement
-            console.log('[VAD] Speech end detected');
+          onFrameProcessed: (probs: Record<string, number>) => {
+            // Track when we're actually receiving speech audio (high speech probability)
+            if (probs.isSpeech > 0.5) {
+              lastAudioChunkTime = performance.now();
+            }
+          },
+          onSpeechEnd: (audio: Float32Array) => {
+            // @ts-ignore - fractionalSecondDigits is valid but not in TypeScript types
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+            const vadDetectionTime = performance.now();
+
+            // Calculate actual VAD delay from last audio chunk to detection
+            if (lastAudioChunkTime !== null) {
+              const actualVadDelay = vadDetectionTime - lastAudioChunkTime;
+
+              console.log(`[VAD] Speech end detected at ${timestamp}`);
+              console.log(`  - Time since last speech audio: ${actualVadDelay.toFixed(0)}ms`);
+              console.log(`  - Configured silence threshold: ${vadSilenceDurationMs}ms`);
+              console.log(`  - Additional VAD processing overhead: ${(actualVadDelay - vadSilenceDurationMs).toFixed(0)}ms`);
+
+              // Update the ref with actual measured delay
+              vadSilenceDurationRef.current = Math.round(actualVadDelay);
+            } else {
+              console.log(`[VAD] Speech end detected at ${timestamp} (using configured silence threshold: ${vadSilenceDurationMs}ms)`);
+            }
+
             clientRef.current?.markSpeechEnd();
+            speechStartTime = null;
+            lastAudioChunkTime = null;
           },
           onVADMisfire: () => {
             // Speech was too short, but still mark it as speech end for latency
-            console.log('[VAD] Speech too short (misfire), still marking end');
+            // @ts-ignore - fractionalSecondDigits is valid but not in TypeScript types
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+            console.log(`[VAD] Speech too short (misfire) at ${timestamp}, still marking end`);
             clientRef.current?.markSpeechEnd();
           },
           model: 'v5',
-          // Lower threshold for detecting speech end
-          minSpeechFrames: 3,
-          // Faster speech end detection
-          negativeSpeechThreshold: 0.5,
+          // Speech detection thresholds
+          positiveSpeechThreshold: 0.8,
+          negativeSpeechThreshold: negativeSpeechThreshold,
+          // Timing parameters (in milliseconds)
+          redemptionMs: 500,      // Wait 500ms of silence before ending speech (default: 1400ms)
+          preSpeechPadMs: 100,    // Prepend 100ms of audio to speech segment (default: 800ms)
+          minSpeechMs: 250,       // Minimum speech duration (default: 400ms)
           // Load from local public folder
           onnxWASMBasePath: `${window.location.origin}${basePath}onnx/`,
           baseAssetPath: `${window.location.origin}${basePath}vad/`,
@@ -605,6 +678,22 @@ Keep your responses concise and natural for voice interaction. Focus on the most
             </label>
             <p className="text-xs text-gray-500 ml-6">
               Allows Gemini to look up product information when asked
+            </p>
+          </div>
+
+          {/* Show Response Latency */}
+          <div className="border-t border-gray-200 pt-4">
+            <label className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                checked={showResponseLatency}
+                onChange={(e) => setShowResponseLatency(e.target.checked)}
+                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Show Response Latency</span>
+            </label>
+            <p className="text-xs text-gray-500 ml-6">
+              Display response time metrics in assistant messages
             </p>
           </div>
 
