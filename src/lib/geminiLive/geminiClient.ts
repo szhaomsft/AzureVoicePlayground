@@ -153,6 +153,9 @@ Keep your responses concise and natural for voice interaction.`
           systemInstruction: {
             parts: [{ text: systemPrompt }]
           },
+          thinkingConfig: {
+            thinkingBudget: 0  // Disable thinking to reduce latency
+          },
           ...(tools && { tools })
         }
       });
