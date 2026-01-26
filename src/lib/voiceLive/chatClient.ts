@@ -119,7 +119,7 @@ export class VoiceLiveChatClient {
     this.pcmPlayer.setPlaybackCompleteCallback(callback);
   }
 
-  setPlaybackStartCallback(callback: () => void) {
+  setPlaybackStartCallback(callback: (actualStartTime: number) => void) {
     this.pcmPlayer.setPlaybackStartCallback(callback);
   }
 
