@@ -34,7 +34,13 @@ export function TextToSpeechPlayground({
   const { enableMAIVoices } = useFeatureFlags();
 
   const [text, setText] = useState(
-    'Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.'
+    `Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.
+
+[laughter] This is very funny.
+[whisper] I just don't know if I can handle this anymore, I confided softly, hoping no one else could hear.
+[shouting] Why can't anyone understand what I'm going through?
+[angry] It's so frustrating to feel like I'm shouting into a void!
+[sad] I just... I feel so alone in this, I finally admitted, my voice breaking as the sadness overwhelmed me.`
   );
   const [selectedPresetLanguage, setSelectedPresetLanguage] = useState<string>('');
   const previousAudioDataRef = useRef<ArrayBuffer | null>(null);

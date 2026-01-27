@@ -19,7 +19,9 @@
       "Bash(tar:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Skill(commit-push-deploy)",
+      "Bash(npm install @google/genai)"
     ]
   }
 }
