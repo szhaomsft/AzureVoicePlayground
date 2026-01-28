@@ -712,7 +712,7 @@ ${capitalizedSpeaker2}: We see AI everywhere now - voice assistants, recommendat
       </div>
 
       {/* Right side - Voice and Speaker Pair Selector */}
-      <div className="w-full md:w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 p-6 flex flex-col overflow-hidden">
+      <div className="w-full md:w-[28rem] flex-shrink-0 bg-gray-50 border-l border-gray-200 p-6 flex flex-col overflow-hidden">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Voice & Speaker Selection</h2>
         <div className="flex-1 min-h-0 overflow-y-auto">
           <MultiTalkerSpeakerPairSelector

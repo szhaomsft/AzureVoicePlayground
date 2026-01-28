@@ -147,7 +147,7 @@ export function MultiTalkerSpeakerPairSelector({
       {selectedVoice && (
         <div className="p-2 bg-purple-50 border border-purple-200 rounded-md flex-shrink-0">
           <div className="text-xs text-purple-600 font-medium">Selected Voice:</div>
-          <div className="text-sm text-purple-800 truncate">{selectedVoice.description}</div>
+          <div className="text-sm text-purple-800 truncate" title={selectedVoice.name}>{selectedVoice.name}</div>
           <div className="text-xs text-purple-600 mt-0.5">
             {selectedVoice.voiceTag?.FemaleSpeakers?.length || 0} female, {selectedVoice.voiceTag?.MaleSpeakers?.length || 0} male speakers
           </div>
@@ -173,17 +173,15 @@ export function MultiTalkerSpeakerPairSelector({
                 onPairChange(pairs[0]);
               }
             }}
+            title={voice.name}
             className={`w-full px-3 py-2 text-left border-b border-gray-100 last:border-b-0 transition-colors ${
               selectedVoice?.name === voice.name
                 ? 'bg-purple-50 border-l-4 border-l-purple-600'
                 : 'hover:bg-gray-50'
             }`}
           >
-            <div className="font-medium text-gray-800 text-sm truncate">{voice.description}</div>
+            <div className="font-medium text-gray-800 text-sm truncate">{voice.name}</div>
             <div className="text-xs text-gray-500 mt-0.5">
-              <span className="inline-block px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded mr-1">
-                {voice.locale}
-              </span>
               <span className="text-gray-400">
                 {voice.voiceTag?.FemaleSpeakers?.length || 0}F / {voice.voiceTag?.MaleSpeakers?.length || 0}M
               </span>
