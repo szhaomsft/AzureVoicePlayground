@@ -49,12 +49,12 @@ export async function fetchVoiceList(
       const isNeuralHD = voice.ShortName?.includes('HD') || voice.Name?.includes('HD');
       const keywords = voice.WordsPerMinute || voice.SecondaryLocaleList || [];
 
-      // Gender can be 1 (Female), 2 (Male), or a string
-      let gender: 'Female' | 'Male' = 'Female';
+      // Gender can be 1 (Female), 2 (Male), or a string (Female, Male, Neutral)
+      let gender: 'Female' | 'Male' | 'Neutral' = 'Female';
       if (typeof voice.Gender === 'number') {
         gender = voice.Gender === 1 ? 'Female' : 'Male';
       } else if (typeof voice.Gender === 'string') {
-        gender = voice.Gender;
+        gender = voice.Gender === 'Neutral' ? 'Neutral' : (voice.Gender === 'Male' ? 'Male' : 'Female');
       }
 
       return {

@@ -175,15 +175,20 @@ export function getBestPresetForLocale(locale: string): PodcastPreset {
  * Adapt a preset script to use the actual speaker names from a voice
  */
 export function adaptPresetToSpeakers(preset: PodcastPreset, actualSpeakers: string[]): string {
-  let script = preset.script;
+  const script = preset.script;
+  const lines = script.split('\n');
 
-  // Replace preset speaker names with actual speaker names
-  preset.speakers.forEach((presetSpeaker, index) => {
-    if (index < actualSpeakers.length) {
-      const regex = new RegExp(`^${presetSpeaker}:`, 'gmi');
-      script = script.replace(regex, `${actualSpeakers[index]}:`);
+  const adaptedLines = lines.map(line => {
+    // Check each preset speaker and replace with the corresponding actual speaker
+    for (let index = 0; index < preset.speakers.length; index++) {
+      const presetSpeaker = preset.speakers[index];
+      const regex = new RegExp(`^${presetSpeaker}:`, 'i');
+      if (regex.test(line) && index < actualSpeakers.length) {
+        return line.replace(regex, `${actualSpeakers[index]}:`);
+      }
     }
+    return line;
   });
 
-  return script;
+  return adaptedLines.join('\n');
 }

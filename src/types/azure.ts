@@ -20,7 +20,7 @@ export interface AzureSettings {
 export interface VoiceInfo {
   name: string;
   locale: string;
-  gender: 'Female' | 'Male';
+  gender: 'Female' | 'Male' | 'Neutral';
   description: string;
   styleList?: string[];
   isFeatured?: boolean;
@@ -32,6 +32,8 @@ export interface VoiceInfo {
     ContentCategories?: string[];
     VoicePersonalities?: string[];
     Source?: string[];
+    FemaleSpeakers?: string[];
+    MaleSpeakers?: string[];
   };
 }
 

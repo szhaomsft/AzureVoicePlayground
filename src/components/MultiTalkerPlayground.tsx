@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AzureSettings, SynthesisState } from '../types/azure';
-import { MultiTalkerVoice, MultiTalkerHistoryEntry, buildMultiTalkerSSML } from '../types/multiTalker';
+import { AzureSettings, SynthesisState, VoiceInfo } from '../types/azure';
+import { MultiTalkerHistoryEntry, buildMultiTalkerSSML } from '../types/multiTalker';
 import { useMultiTalkerTTS } from '../hooks/useMultiTalkerTTS';
-import { MultiTalkerSpeakerPairSelector, SpeakerPair, getVoiceDetailsFromPair } from './MultiTalkerSpeakerPairSelector';
+import { MultiTalkerSpeakerPairSelector, SpeakerPair, getVoiceDetailsFromPair, generateSpeakerPairs, getMultiTalkerVoices } from './MultiTalkerSpeakerPairSelector';
 import { PlaybackControls } from './PlaybackControls';
 import { FeedbackButton } from './FeedbackButton';
 import { getAudioDuration } from '../utils/audioUtils';
-import { PODCAST_PRESETS, getBestPresetForLocale, adaptPresetToSpeakers } from '../utils/podcastPresets';
+import { PODCAST_PRESETS, adaptPresetToSpeakers } from '../utils/podcastPresets';
 import { generatePodcastScript, AzureOpenAIConfig } from '../utils/azureOpenAI';
-import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { fetchVoiceList } from '../utils/voiceList';
 
 interface MultiTalkerPlaygroundProps {
   settings: AzureSettings;
@@ -20,12 +20,12 @@ interface MultiTalkerPlaygroundProps {
   clearHistory: () => void;
 }
 
-const SAMPLE_TEXT = `ava: Welcome to Tech Talk! I'm your host, and today we're diving into artificial intelligence.
-andrew: Thanks for having me! AI is such a fascinating topic these days.
-ava: Absolutely! Can you explain what makes modern AI so powerful?
-andrew: Of course! The key is deep learning, which allows computers to learn patterns from massive amounts of data.
-ava: That sounds incredible. What are some practical applications?
-andrew: We see AI everywhere now - voice assistants, recommendation systems, autonomous vehicles, and more.`;
+const SAMPLE_TEXT = `Ava: Welcome to Tech Talk! I'm your host, and today we're diving into artificial intelligence.
+Andrew: Thanks for having me! AI is such a fascinating topic these days.
+Ava: Absolutely! Can you explain what makes modern AI so powerful?
+Andrew: Of course! The key is deep learning, which allows computers to learn patterns from massive amounts of data.
+Ava: That sounds incredible. What are some practical applications?
+Andrew: We see AI everywhere now - voice assistants, recommendation systems, autonomous vehicles, and more.`;
 
 export function MultiTalkerPlayground({
   settings,
@@ -36,10 +36,12 @@ export function MultiTalkerPlayground({
   removeFromHistory,
   clearHistory,
 }: MultiTalkerPlaygroundProps) {
-  const { enableMAIVoices } = useFeatureFlags();
-
   const [text, setText] = useState(SAMPLE_TEXT);
-  const [selectedPair, setSelectedPair] = useState<SpeakerPair | null>({ female: 'ava', male: 'andrew', display: 'Ava & Andrew' });
+  const [voices, setVoices] = useState<VoiceInfo[]>([]);
+  const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+  const [voiceLoadError, setVoiceLoadError] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<VoiceInfo | null>(null);
+  const [selectedPair, setSelectedPair] = useState<SpeakerPair | null>(null);
   const [showSSML, setShowSSML] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string>('en-US');
@@ -71,11 +73,64 @@ export function MultiTalkerPlayground({
   const SUPPORTED_REGIONS = ['eastus', 'southeastasia', 'westeurope'];
   const isRegionSupported = SUPPORTED_REGIONS.includes(settings.region.toLowerCase());
 
+  // Fetch voices when configured and region is supported
+  useEffect(() => {
+    if (isConfigured && isRegionSupported && settings.apiKey && settings.region) {
+      setIsLoadingVoices(true);
+      setVoiceLoadError(null);
+
+      fetchVoiceList(settings.apiKey, settings.region, false)
+        .then((fetchedVoices) => {
+          setVoices(fetchedVoices);
+
+          // Auto-select first multitalker voice and its first pair
+          const multiTalkerVoices = getMultiTalkerVoices(fetchedVoices);
+          if (multiTalkerVoices.length > 0 && !selectedVoice) {
+            const firstVoice = multiTalkerVoices[0];
+            setSelectedVoice(firstVoice);
+            const pairs = generateSpeakerPairs(firstVoice);
+            if (pairs.length > 0) {
+              setSelectedPair(pairs[0]);
+              // Update sample text with selected speakers
+              const voiceDetails = getVoiceDetailsFromPair(firstVoice, pairs[0]);
+              if (voiceDetails) {
+                updateSampleTextWithSpeakers(voiceDetails.speakers);
+              }
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch voices:', err);
+          setVoiceLoadError(err instanceof Error ? err.message : 'Failed to fetch voices');
+        })
+        .finally(() => {
+          setIsLoadingVoices(false);
+        });
+    }
+  }, [isConfigured, isRegionSupported, settings.apiKey, settings.region]);
+
+  // Helper to update sample text with new speaker names
+  const updateSampleTextWithSpeakers = (speakers: string[]) => {
+    if (speakers.length >= 2) {
+      const [speaker1, speaker2] = speakers;
+      const capitalizedSpeaker1 = speaker1.charAt(0).toUpperCase() + speaker1.slice(1);
+      const capitalizedSpeaker2 = speaker2.charAt(0).toUpperCase() + speaker2.slice(1);
+
+      const newText = `${capitalizedSpeaker1}: Welcome to Tech Talk! I'm your host, and today we're diving into artificial intelligence.
+${capitalizedSpeaker2}: Thanks for having me! AI is such a fascinating topic these days.
+${capitalizedSpeaker1}: Absolutely! Can you explain what makes modern AI so powerful?
+${capitalizedSpeaker2}: Of course! The key is deep learning, which allows computers to learn patterns from massive amounts of data.
+${capitalizedSpeaker1}: That sounds incredible. What are some practical applications?
+${capitalizedSpeaker2}: We see AI everywhere now - voice assistants, recommendation systems, autonomous vehicles, and more.`;
+      setText(newText);
+    }
+  };
+
   // Load preset when selected
   const handlePresetChange = (presetLocale: string) => {
     setSelectedPreset(presetLocale);
-    if (presetLocale && selectedPair) {
-      const voiceDetails = getVoiceDetailsFromPair(selectedPair);
+    if (presetLocale && selectedVoice && selectedPair) {
+      const voiceDetails = getVoiceDetailsFromPair(selectedVoice, selectedPair);
       if (voiceDetails) {
         const preset = PODCAST_PRESETS.find(p => p.locale === presetLocale);
         if (preset) {
@@ -88,8 +143,8 @@ export function MultiTalkerPlayground({
 
   // Update text when pair changes to adapt speaker names
   useEffect(() => {
-    if (selectedPair && selectedPreset) {
-      const voiceDetails = getVoiceDetailsFromPair(selectedPair);
+    if (selectedVoice && selectedPair && selectedPreset) {
+      const voiceDetails = getVoiceDetailsFromPair(selectedVoice, selectedPair);
       if (voiceDetails) {
         const preset = PODCAST_PRESETS.find(p => p.locale === selectedPreset);
         if (preset) {
@@ -98,13 +153,13 @@ export function MultiTalkerPlayground({
         }
       }
     }
-  }, [selectedPair, selectedPreset]);
+  }, [selectedPair, selectedPreset, selectedVoice]);
 
   // Add to history when synthesis completes successfully with NEW audio
   useEffect(() => {
-    if (audioData && audioData !== previousAudioDataRef.current && selectedPair) {
+    if (audioData && audioData !== previousAudioDataRef.current && selectedVoice && selectedPair) {
       previousAudioDataRef.current = audioData;
-      const voiceDetails = getVoiceDetailsFromPair(selectedPair);
+      const voiceDetails = getVoiceDetailsFromPair(selectedVoice, selectedPair);
 
       getAudioDuration(audioData)
         .then((duration) => {
@@ -130,11 +185,11 @@ export function MultiTalkerPlayground({
           });
         });
     }
-  }, [audioData, text, selectedPair, settings.region, addToHistory]);
+  }, [audioData, text, selectedVoice, selectedPair, settings.region, addToHistory]);
 
   const handlePlay = () => {
-    if (selectedPair) {
-      const voiceDetails = getVoiceDetailsFromPair(selectedPair);
+    if (selectedVoice && selectedPair) {
+      const voiceDetails = getVoiceDetailsFromPair(selectedVoice, selectedPair);
       if (voiceDetails) {
         synthesize(text, voiceDetails.voiceName, voiceDetails.locale, voiceDetails.speakers);
       }
@@ -160,8 +215,8 @@ export function MultiTalkerPlayground({
       setShowAIConfig(true);
       return;
     }
-    if (!selectedPair) {
-      setGenerateError('Please select a speaker pair first');
+    if (!selectedVoice || !selectedPair) {
+      setGenerateError('Please select a voice and speaker pair first');
       return;
     }
 
@@ -175,7 +230,7 @@ export function MultiTalkerPlayground({
         deploymentName: aiDeployment,
       };
 
-      const voiceDetails = getVoiceDetailsFromPair(selectedPair);
+      const voiceDetails = getVoiceDetailsFromPair(selectedVoice, selectedPair);
       if (!voiceDetails) {
         throw new Error('Failed to get voice details');
       }
@@ -257,6 +312,23 @@ export function MultiTalkerPlayground({
     };
   };
 
+  // Handle voice change from selector
+  const handleVoiceChange = (voice: VoiceInfo) => {
+    setSelectedVoice(voice);
+  };
+
+  // Handle pair change from selector
+  const handlePairChange = (pair: SpeakerPair) => {
+    setSelectedPair(pair);
+    // Update text with new speaker names if using default text
+    if (selectedVoice) {
+      const voiceDetails = getVoiceDetailsFromPair(selectedVoice, pair);
+      if (voiceDetails && !selectedPreset) {
+        updateSampleTextWithSpeakers(voiceDetails.speakers);
+      }
+    }
+  };
+
   // Map MultiTalkerState to SynthesisState for PlaybackControls compatibility
   const synthesisState: SynthesisState = state as SynthesisState;
 
@@ -294,6 +366,21 @@ export function MultiTalkerPlayground({
                   <p className="text-sm text-amber-700 mt-2">
                     Your current region is <strong>{settings.region}</strong>. Please update your region in the sidebar settings.
                   </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Voice Load Error */}
+          {voiceLoadError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 className="font-semibold text-red-800">Failed to Load Voices</h3>
+                  <p className="text-sm text-red-700 mt-1">{voiceLoadError}</p>
                 </div>
               </div>
             </div>
@@ -419,13 +506,13 @@ export function MultiTalkerPlayground({
               <label className="block text-sm font-medium text-gray-700">
                 {showSSML ? 'SSML Preview' : 'Dialog Text'}
               </label>
-              {selectedPair && !showSSML && (() => {
-                const voiceDetails = getVoiceDetailsFromPair(selectedPair);
+              {selectedVoice && selectedPair && !showSSML && (() => {
+                const voiceDetails = getVoiceDetailsFromPair(selectedVoice, selectedPair);
                 return voiceDetails ? (
                   <div className="text-xs text-gray-500">
                     Format: <code className="bg-gray-100 px-1 rounded">speaker: text</code>
                     {' | Speakers: '}
-                    {voiceDetails.speakers.map((s, i) => (
+                    {voiceDetails.speakers.map((s) => (
                       <code key={s} className="bg-purple-100 text-purple-700 px-1 rounded mx-0.5">
                         {s}
                       </code>
@@ -436,8 +523,8 @@ export function MultiTalkerPlayground({
             </div>
             <textarea
               value={(() => {
-                if (showSSML && selectedPair) {
-                  const voiceDetails = getVoiceDetailsFromPair(selectedPair);
+                if (showSSML && selectedVoice && selectedPair) {
+                  const voiceDetails = getVoiceDetailsFromPair(selectedVoice, selectedPair);
                   return voiceDetails
                     ? buildMultiTalkerSSML(text, voiceDetails.voiceName, voiceDetails.locale, voiceDetails.speakers)
                     : text;
@@ -457,7 +544,7 @@ export function MultiTalkerPlayground({
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowSSML(!showSSML)}
-                  disabled={!selectedPair || !text}
+                  disabled={!selectedVoice || !selectedPair || !text}
                   className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {showSSML ? 'Show Plain Text' : 'Show SSML'}
@@ -480,7 +567,7 @@ export function MultiTalkerPlayground({
               error={error}
               audioData={audioData}
               hasText={text.trim().length > 0}
-              isConfigured={isConfigured && selectedPair !== null}
+              isConfigured={isConfigured && selectedVoice !== null && selectedPair !== null}
               onPlay={handlePlay}
               onPause={pause}
               onResume={resume}
@@ -610,12 +697,12 @@ export function MultiTalkerPlayground({
         {/* Footer */}
         <div className="bg-gray-50 border-t border-gray-200 px-6 py-3 flex items-center justify-between">
           <p className="text-xs text-gray-600">
-            Multi Talker uses Azure Speech Service with DragonHDLatestNeural model.
+            Multi Talker uses Azure Speech Service with multi-talker voices.
           </p>
           <FeedbackButton
             text={text}
             selectedVoice={(() => {
-              const voiceDetails = getVoiceDetailsFromPair(selectedPair);
+              const voiceDetails = getVoiceDetailsFromPair(selectedVoice, selectedPair);
               return voiceDetails?.displayName || '';
             })()}
             region={settings.region}
@@ -624,13 +711,17 @@ export function MultiTalkerPlayground({
         </div>
       </div>
 
-      {/* Right side - Speaker Pair Selector */}
+      {/* Right side - Voice and Speaker Pair Selector */}
       <div className="w-full md:w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 p-6 flex flex-col overflow-hidden">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Speaker Pair Selection</h2>
-        <div className="flex-1 min-h-0">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Voice & Speaker Selection</h2>
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <MultiTalkerSpeakerPairSelector
+            voices={voices}
+            selectedVoice={selectedVoice}
             selectedPair={selectedPair}
-            onPairChange={setSelectedPair}
+            onVoiceChange={handleVoiceChange}
+            onPairChange={handlePairChange}
+            isLoading={isLoadingVoices}
           />
         </div>
       </div>
