@@ -13,7 +13,7 @@ interface PodcastVoicePairSelectorProps {
   disabled?: boolean;
 }
 
-// Hardcoded voice pairs for en-US using DragonHDV2.4Neural
+// Hardcoded voice pairs for en-US using DragonHDLatestNeural
 // Female speakers: ava, ada, emma, jane
 // Male speakers: andrew, brian, davis, steffan
 const EN_US_VOICE_PAIRS: VoicePair[] = [
@@ -156,7 +156,7 @@ export function getVoiceDetails(pair: VoicePair | null, locale: string): {
   // Use the same voice for all locales
   // The voice supports multiple languages
   return {
-    voiceName: 'en-us-multitalker-set1:DragonHDV2.4Neural',
+    voiceName: 'en-us-multitalker-set1:DragonHDLatestNeural',
     speakerNames: `${pair.female},${pair.male}`,
   };
 }

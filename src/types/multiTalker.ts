@@ -1,7 +1,7 @@
 import { VoiceInfo } from './azure';
 
 export interface MultiTalkerVoice {
-  name: string;           // e.g., "zh-cn-multitalker-xiaochen-yunhan:DragonHDV2.4Neural"
+  name: string;           // e.g., "zh-cn-multitalker-xiaochen-yunhan:DragonHDLatestNeural"
   displayName: string;    // e.g., "Xiaochen & Yunhan (Chinese)"
   locale: string;         // e.g., "zh-CN"
   speakers: string[];     // e.g., ["xiaochen", "yunhan"]
@@ -21,7 +21,7 @@ export type MultiTalkerState = 'idle' | 'synthesizing' | 'playing' | 'paused' | 
 
 /**
  * Parse a multi-talker voice name to extract speaker names
- * Example: "zh-cn-multitalker-xiaochen-yunhan:DragonHDV2.4Neural"
+ * Example: "zh-cn-multitalker-xiaochen-yunhan:DragonHDLatestNeural"
  * Returns: ["xiaochen", "yunhan"]
  */
 export function extractSpeakersFromVoiceName(voiceName: string): string[] {
@@ -38,7 +38,7 @@ export function extractSpeakersFromVoiceName(voiceName: string): string[] {
 
 /**
  * Extract locale from voice name
- * Example: "zh-cn-multitalker-xiaochen-yunhan:DragonHDV2.4Neural"
+ * Example: "zh-cn-multitalker-xiaochen-yunhan:DragonHDLatestNeural"
  * Returns: "zh-CN"
  */
 export function extractLocaleFromVoiceName(voiceName: string): string {

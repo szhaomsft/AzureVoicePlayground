@@ -33,20 +33,45 @@ export function TextToSpeechPlayground({
 }: TextToSpeechPlaygroundProps) {
   const { enableMAIVoices } = useFeatureFlags();
 
-  const [text, setText] = useState(
-    `Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.
+  // Check if the selected voice is an HD voice (DragonHD or DragonHDOmni)
+  const isHDVoice = settings.selectedVoice?.includes('DragonHD') || false;
+
+  // Default texts
+  const defaultText = 'Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.';
+  const hdVoiceExampleText = `Welcome to Azure Voice Playground. Select a voice and choose a preset text to get started, or type your own text.
 
 [laughter] This is very funny.
 [whisper] I just don't know if I can handle this anymore, I confided softly, hoping no one else could hear.
 [shouting] Why can't anyone understand what I'm going through?
 [angry] It's so frustrating to feel like I'm shouting into a void!
-[sad] I just... I feel so alone in this, I finally admitted, my voice breaking as the sadness overwhelmed me.`
-  );
+[sad] I just... I feel so alone in this, I finally admitted, my voice breaking as the sadness overwhelmed me.`;
+
+  const [text, setText] = useState(defaultText);
   const [selectedPresetLanguage, setSelectedPresetLanguage] = useState<string>('');
   const previousAudioDataRef = useRef<ArrayBuffer | null>(null);
+  const previousVoiceRef = useRef<string>('');
 
   const { state, error, wordBoundaries, currentWordIndex, audioData, synthesize, pause, resume, stop } =
     useAzureTTS(settings);
+
+  // Update text when voice changes between HD and non-HD voices
+  useEffect(() => {
+    const currentVoice = settings.selectedVoice || '';
+    const currentIsHD = currentVoice.includes('DragonHD');
+    const previousIsHD = previousVoiceRef.current.includes('DragonHD');
+
+    // Only update text if:
+    // 1. Voice changed from non-HD to HD (show examples)
+    // 2. Voice changed from HD to non-HD (remove examples)
+    // 3. Text is still the default text (user hasn't typed custom text)
+    if (currentVoice !== previousVoiceRef.current &&
+        currentIsHD !== previousIsHD &&
+        (text === defaultText || text === hdVoiceExampleText)) {
+      setText(currentIsHD ? hdVoiceExampleText : defaultText);
+    }
+
+    previousVoiceRef.current = currentVoice;
+  }, [settings.selectedVoice, text]);
 
   // Get current language from selected voice or preset selection
   const currentLanguage = getLanguageFromVoice(settings.selectedVoice);

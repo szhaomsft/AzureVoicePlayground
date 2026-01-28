@@ -610,7 +610,7 @@ export function MultiTalkerPlayground({
         {/* Footer */}
         <div className="bg-gray-50 border-t border-gray-200 px-6 py-3 flex items-center justify-between">
           <p className="text-xs text-gray-600">
-            Multi Talker uses Azure Speech Service with DragonHDV2.4Neural model.
+            Multi Talker uses Azure Speech Service with DragonHDLatestNeural model.
           </p>
           <FeedbackButton
             text={text}

@@ -33,7 +33,7 @@ export interface ScriptGeneration {
 }
 
 export interface PodcastTTS {
-  voiceName?: string;                    // e.g., "en-us-multitalker-set1:DragonHDV2.4Neural"
+  voiceName?: string;                    // e.g., "en-us-multitalker-set1:DragonHDLatestNeural"
   multiTalkerVoiceSpeakerNames?: string; // e.g., "ava,andrew"
   genderPreference?: 'Male' | 'Female';  // For OneHost
 }

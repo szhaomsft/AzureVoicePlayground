@@ -6,7 +6,7 @@ export interface SpeakerPair {
   display: string;
 }
 
-// Hardcoded speaker pairs for en-US using DragonHDV2.4Neural
+// Hardcoded speaker pairs for en-US using DragonHDLatestNeural
 // Female speakers: ava, ada, emma, jane
 // Male speakers: andrew, brian, davis, steffan
 const EN_US_SPEAKER_PAIRS: SpeakerPair[] = [
@@ -131,7 +131,7 @@ export function getVoiceDetailsFromPair(pair: SpeakerPair | null): {
   if (!pair) return null;
 
   return {
-    voiceName: 'en-us-multitalker-set1:DragonHDV2.4Neural',
+    voiceName: 'en-us-multitalker-set1:DragonHDLatestNeural',
     locale: 'en-US',
     speakers: [pair.female, pair.male],
     displayName: pair.display,
