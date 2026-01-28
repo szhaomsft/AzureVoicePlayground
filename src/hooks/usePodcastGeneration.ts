@@ -79,15 +79,16 @@ export function usePodcastGeneration({ apiKey, region }: UsePodcastGenerationOpt
           length: config.length,
           additionalInstructions: config.additionalInstructions || undefined,
         },
-        tts: config.hostType === 'TwoHosts' && voiceName && speakerNames
+        tts: config.hostType === 'TwoHosts' && speakerNames
           ? {
-              voiceName,
+              voiceName: voiceName || undefined,
               multiTalkerVoiceSpeakerNames: speakerNames,
             }
           : undefined,
       };
 
       console.log('Creating generation with params:', createParams);
+      console.log('Speaker names passed to API:', speakerNames);
 
       const { generation } = await createGeneration(apiConfig, createParams);
 
