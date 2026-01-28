@@ -153,10 +153,9 @@ export function getVoiceDetails(pair: VoicePair | null, locale: string): {
 } | null {
   if (!pair) return null;
 
-  // Use the same voice for all locales
-  // The voice supports multiple languages
+  // Voice name is empty - service will use default voice
   return {
-    voiceName: 'en-us-multitalker-set1:DragonHDLatestNeural',
+    voiceName: '',
     speakerNames: `${pair.female},${pair.male}`,
   };
 }
