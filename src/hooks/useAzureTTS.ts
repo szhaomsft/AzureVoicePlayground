@@ -53,7 +53,7 @@ export function useAzureTTS(settings: AzureSettings) {
     }
 
     speechConfig.speechSynthesisOutputFormat =
-      SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3;
+      SpeechSDK.SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3;
 
     // Use speaker output for streaming playback
     const player = new SpeechSDK.SpeakerAudioDestination();
@@ -235,8 +235,8 @@ export function useAzureTTS(settings: AzureSettings) {
         console.log('✅ Synthesis completed - now have all', boundariesRef.current.length, 'word boundaries');
 
         // Calculate audio duration from file size
-        // For MP3 at 48kbps, approximate duration: bytes * 8 / bitrate (in seconds)
-        const estimatedDurationMs = (totalLength * 8 / 48000) * 1000;
+        // For MP3 at 192kbps, approximate duration: bytes * 8 / bitrate (in seconds)
+        const estimatedDurationMs = (totalLength * 8 / 192000) * 1000;
 
         // Use duration-based stop for all voices
         const currentPlaybackTime = Date.now() - playbackStartTimeRef.current;

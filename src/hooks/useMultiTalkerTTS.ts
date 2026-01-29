@@ -31,7 +31,7 @@ export function useMultiTalkerTTS({ apiKey, region }: UseMultiTalkerTTSProps) {
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(apiKey, region);
     // For SSML, we don't set the voice name here - it's in the SSML
     speechConfig.speechSynthesisOutputFormat =
-      SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3;
+      SpeechSDK.SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3;
 
     // Use speaker output for streaming playback
     const player = new SpeechSDK.SpeakerAudioDestination();
@@ -110,8 +110,8 @@ export function useMultiTalkerTTS({ apiKey, region }: UseMultiTalkerTTSProps) {
         console.log('Multi-talker synthesis completed - audio size:', totalLength, 'bytes');
 
         // Calculate audio duration from file size
-        // For MP3 at 48kbps, approximate duration: bytes * 8 / bitrate (in seconds)
-        const estimatedDurationMs = (totalLength * 8 / 48000) * 1000;
+        // For MP3 at 192kbps, approximate duration: bytes * 8 / bitrate (in seconds)
+        const estimatedDurationMs = (totalLength * 8 / 192000) * 1000;
 
         const currentPlaybackTime = Date.now() - playbackStartTimeRef.current;
         const remainingTime = Math.max(100, estimatedDurationMs - currentPlaybackTime + 300);
