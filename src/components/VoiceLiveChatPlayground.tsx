@@ -677,13 +677,13 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
             /* Personal Voice Settings */
             <div className="space-y-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Speaker Profile ID</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Personal Voice Name</label>
                 <input
                   type="text"
                   value={config.personalVoiceSpeakerProfileId}
                   onChange={(e) => setConfig((c) => ({ ...c, personalVoiceSpeakerProfileId: e.target.value }))}
                   disabled={isConnected}
-                  placeholder="Enter speaker profile ID"
+                  placeholder="Enter personal voice name (e.g. my-voice-01)"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                 />
               </div>
@@ -786,11 +786,14 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
                       key={pv.id}
                       type="button"
                       onClick={() => {
-                        setConfig((c) => ({ ...c, personalVoiceSpeakerProfileId: pv.speakerProfileId }));
+                        // Voice Live needs the personal voice *name* (pv.id),
+                        // NOT the speakerProfileId GUID. The state field is
+                        // misnamed for legacy reasons.
+                        setConfig((c) => ({ ...c, personalVoiceSpeakerProfileId: pv.id }));
                         setPersonalVoices([]);
                       }}
                       className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors ${
-                        config.personalVoiceSpeakerProfileId === pv.speakerProfileId ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                        config.personalVoiceSpeakerProfileId === pv.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                       }`}
                     >
                       <div className="font-medium">{pv.displayName || pv.id}</div>
