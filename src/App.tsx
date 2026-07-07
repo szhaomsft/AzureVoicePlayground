@@ -16,6 +16,7 @@ import { VoiceCreationPlayground } from './components/VoiceCreationPlayground';
 import { VideoTranslationPlayground } from './components/VideoTranslationPlayground';
 import { GeminiLivePlayground } from './components/GeminiLivePlayground';
 
+
 // Valid playground modes for URL hash routing
 const VALID_MODES: PlaygroundMode[] = [
   'text-to-speech',
@@ -165,7 +166,11 @@ function App() {
       />
 
       {/* Main Playground Area */}
-      {renderPlayground()}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex overflow-hidden">
+          {renderPlayground()}
+        </div>
+      </div>
     </div>
   );
 }

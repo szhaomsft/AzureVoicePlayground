@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AzureSettings } from '../types/azure';
+import { ProductIntroduction } from './ProductIntroduction';
 import { PodcastContentUploader } from './PodcastContentUploader';
 import { PodcastOneHostVoiceSelector } from './PodcastOneHostVoiceSelector';
 import { PodcastTwoHostsVoiceSelector } from './PodcastTwoHostsVoiceSelector';
 import { ALL_TTS_REGIONS } from './NavigationSidebar';
 import { usePodcastGeneration } from '../hooks/usePodcastGeneration';
 import { PodcastVideoRenderer } from '../lib/podcast/videoRenderer';
+import { queryAccVersion, compareVersions, MD_FORMAT_MIN_VERSION } from '../lib/podcast/podcastClient';
 import {
   PodcastContentSource,
   PodcastConfig,
@@ -160,6 +162,9 @@ export function PodcastAgentPlayground({
   const [showHistory, setShowHistory] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
+  // Markdown format support (requires ACC API >= 1.3.8)
+  const [mdSupported, setMdSupported] = useState(false);
+
   // Video generation state
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -209,6 +214,27 @@ export function PodcastAgentPlayground({
     setManualTwoHostsVoiceName('');
     setManualSpeakerNames('');
   }, [locale, hostType]);
+
+  // Check if ACC API supports .md format
+  useEffect(() => {
+    if (!settings.apiKey || !settings.region) {
+      setMdSupported(false);
+      return;
+    }
+    let cancelled = false;
+    queryAccVersion({ apiKey: settings.apiKey, region: settings.region })
+      .then((version) => {
+        if (!cancelled) {
+          setMdSupported(version ? compareVersions(version, MD_FORMAT_MIN_VERSION) : false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMdSupported(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [settings.apiKey, settings.region]);
 
   // Get available locales based on host type
   const availableLocales = hostType === 'TwoHosts'
@@ -483,6 +509,7 @@ export function PodcastAgentPlayground({
               <PodcastContentUploader
                 onContentChange={setContentSource}
                 disabled={isProcessing}
+                mdSupported={mdSupported}
               />
             </div>
 
@@ -1157,6 +1184,9 @@ export function PodcastAgentPlayground({
           </div>
         </div>
       </div>
+
+      {/* Product Introduction */}
+      <ProductIntroduction mode="podcast-agent" />
 
       {/* History Panel */}
       <div className="border-t border-gray-200">

@@ -8,6 +8,7 @@ import { TextInput } from './TextInput';
 import { PlaybackControls } from './PlaybackControls';
 import { FeedbackButton } from './FeedbackButton';
 import { HistoryPanel } from './HistoryPanel';
+import { ProductIntroduction } from './ProductIntroduction';
 import { getAudioDuration } from '../utils/audioUtils';
 import { PERSONAL_VOICE_MODELS, PersonalVoiceModel, BaseModel } from '../types/personalVoice';
 import { listBaseModels } from '../lib/personalVoice/personalVoiceClient';
@@ -225,6 +226,9 @@ export function TextToSpeechPlayground({
             />
           </div>
         </div>
+
+        {/* Product Introduction */}
+        <ProductIntroduction mode="text-to-speech" />
 
         {/* History Panel */}
         <HistoryPanel

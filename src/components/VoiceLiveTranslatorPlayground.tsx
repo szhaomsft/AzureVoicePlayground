@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ProductIntroduction } from './ProductIntroduction';
 import {
   buildInterpreterPrompt,
   DEFAULT_CONFIG,
@@ -342,6 +343,9 @@ export function VoiceLiveTranslatorPlayground({ endpoint, apiKey }: VoiceLiveTra
             )}
           </div>
         </div>
+
+        {/* Product Introduction */}
+        <ProductIntroduction mode="voice-live-translator" />
 
         {/* Footer */}
         <div className="bg-gray-50 border-t border-gray-200 px-6 py-3">

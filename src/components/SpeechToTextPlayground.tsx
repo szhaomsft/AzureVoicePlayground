@@ -15,6 +15,7 @@ import { ExportTranscript } from './ExportTranscript';
 import { AudioUploader } from './AudioUploader';
 import { AudioRecorder } from './AudioRecorder';
 import { getAudioDuration } from '../utils/audioUtils';
+import { ProductIntroduction } from './ProductIntroduction';
 
 interface SpeechToTextPlaygroundProps {
   settings: AzureSettings;
@@ -354,6 +355,9 @@ export function SpeechToTextPlayground({
               />
             )}
           </div>
+
+          {/* Product Introduction */}
+          <ProductIntroduction mode="speech-to-text" />
         </div>
 
         {/* Right side - Recognition Config */}
