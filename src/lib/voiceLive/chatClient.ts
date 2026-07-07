@@ -246,7 +246,12 @@ export class VoiceLiveChatClient {
     let voiceConfig: string | { type: string; name: string; model?: string };
 
     if (config.voiceType === 'personal') {
-      // Personal voice uses azure-personal type with speaker profile ID
+      // Voice Live's azure-personal voice config takes the personal voice
+      // *name* (e.g. "my-voice-01"), NOT the speakerProfileId GUID. Passing a
+      // GUID here causes: "Speech synthesis failed: you don't have access to
+      // this personalVoiceName or it's not available."
+      // The field below is named `personalVoiceSpeakerProfileId` for legacy
+      // reasons but actually holds the personal voice name.
       voiceConfig = {
         type: 'azure-personal',
         name: config.personalVoiceSpeakerProfileId,
