@@ -163,7 +163,9 @@ export function SpeechToTextPlayground({
           prompt: llmPrompt.trim() ? llmPrompt.split('\n').filter(line => line.trim()) : undefined
         });
       } else if (selectedModel === 'mai-transcribe') {
-        await maiTranscribe.transcribe(audioSource, selectedLanguage);
+        await maiTranscribe.transcribe(audioSource, selectedLanguage, {
+          enableDiarization
+        });
       } else if (selectedModel === 'whisper') {
         await whisperTranscription.transcribe(audioSource, selectedLanguage);
       }
@@ -376,8 +378,8 @@ export function SpeechToTextPlayground({
               selectedModel={selectedModel}
             />
 
-            {/* Diarization Settings (Fast Transcription & LLM Speech only) */}
-            {(selectedModel === 'fast-transcription' || selectedModel === 'llm-speech') && (
+            {/* Diarization Settings */}
+            {(selectedModel === 'fast-transcription' || selectedModel === 'llm-speech' || selectedModel === 'mai-transcribe') && (
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700">
                   Speaker Diarization
@@ -398,7 +400,7 @@ export function SpeechToTextPlayground({
                 </div>
 
                 {/* Max Speakers Selector */}
-                {enableDiarization && (
+                {enableDiarization && selectedModel !== 'mai-transcribe' && (
                   <div className="ml-6 space-y-2">
                     <label htmlFor="maxSpeakers" className="block text-sm text-gray-700">
                       Maximum speakers

@@ -28,6 +28,7 @@ const LLM_SPEECH_REGIONS = [
   'northeurope',
   'southeastasia',
   'westus',
+  'westus2',
 ];
 
 // All regions support Realtime STT, so no need for a separate list
@@ -74,11 +75,11 @@ const MODELS: ModelInfo[] = [
   },
   {
     id: 'mai-transcribe',
-    name: 'MAI-Transcribe-1.5 (Preview)',
-    description: 'High accuracy & efficiency by Microsoft AI',
+    name: 'MAI-Transcribe-2 (Preview)',
+    description: 'Latest high-accuracy model from Microsoft AI',
     icon: '🎯',
-    useCases: 'High-accuracy transcription with broad language support',
-    features: ['High accuracy', 'High efficiency', 'Max 300 MB', `${MAI_TRANSCRIBE_LANGUAGES.length} languages`]
+    useCases: 'Noisy audio, meetings, captions, and multilingual transcription',
+    features: ['High accuracy', 'Speaker diarization', 'Word timestamps', 'Max 300 MB', `${MAI_TRANSCRIBE_LANGUAGES.length} languages`]
   },
   // Whisper temporarily hidden - requires Azure Blob Storage for audio URLs
   // {

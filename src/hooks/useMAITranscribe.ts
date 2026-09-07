@@ -1,4 +1,4 @@
-// Hook for MAI-Transcribe-1.5 model via LLM Speech API
+// Hook for MAI-Transcribe-2 model via LLM Speech API
 // https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-transcribe
 
 import { useState, useCallback } from 'react';
@@ -7,38 +7,52 @@ import { FastTranscript, TranscriptSegment, WordTiming } from '../types/transcri
 import { STTState } from '../types/stt';
 import { convertToWav16kHz } from '../utils/audioConversion';
 
-const MAI_TRANSCRIBE_MODEL = 'mai-transcribe-1.5';
+const MAI_TRANSCRIBE_MODEL = 'MAI-Transcribe-2';
 const MAI_TRANSCRIBE_MAX_FILE_SIZE_BYTES = 300 * 1024 * 1024;
 
-// MAI-Transcribe-1.5 supported languages (42 languages)
+// MAI-Transcribe-2 supported languages (60 languages)
 export const MAI_TRANSCRIBE_LANGUAGES = [
+  { code: 'af-ZA', name: 'Afrikaans', nativeName: 'Afrikaans' },
   { code: 'ar-SA', name: 'Arabic', nativeName: 'العربية' },
   { code: 'as-IN', name: 'Assamese', nativeName: 'অসমীয়া' },
+  { code: 'az-AZ', name: 'Azerbaijani', nativeName: 'Azərbaycan dili' },
   { code: 'bg-BG', name: 'Bulgarian', nativeName: 'Български' },
   { code: 'bn-IN', name: 'Bengali', nativeName: 'বাংলা' },
+  { code: 'bs-BA', name: 'Bosnian', nativeName: 'Bosanski' },
   { code: 'ca-ES', name: 'Catalan', nativeName: 'Català' },
-  { code: 'zh-CN', name: 'Chinese', nativeName: '中文 (简体)' },
   { code: 'cs-CZ', name: 'Czech', nativeName: 'Čeština' },
   { code: 'da-DK', name: 'Danish', nativeName: 'Dansk' },
-  { code: 'nl-NL', name: 'Dutch', nativeName: 'Nederlands' },
-  { code: 'en-US', name: 'English', nativeName: 'English (United States)' },
-  { code: 'et-EE', name: 'Estonian', nativeName: 'Eesti' },
-  { code: 'fi-FI', name: 'Finnish', nativeName: 'Suomi' },
-  { code: 'fr-FR', name: 'French', nativeName: 'Français (France)' },
   { code: 'de-DE', name: 'German', nativeName: 'Deutsch (Deutschland)' },
   { code: 'el-GR', name: 'Greek', nativeName: 'Ελληνικά' },
+  { code: 'en-US', name: 'English', nativeName: 'English (United States)' },
+  { code: 'es-ES', name: 'Spanish', nativeName: 'Español (España)' },
+  { code: 'et-EE', name: 'Estonian', nativeName: 'Eesti' },
+  { code: 'fa-IR', name: 'Persian', nativeName: 'فارسی' },
+  { code: 'fi-FI', name: 'Finnish', nativeName: 'Suomi' },
+  { code: 'fil-PH', name: 'Filipino', nativeName: 'Filipino' },
+  { code: 'fr-FR', name: 'French', nativeName: 'Français (France)' },
+  { code: 'gl-ES', name: 'Galician', nativeName: 'Galego' },
   { code: 'gu-IN', name: 'Gujarati', nativeName: 'ગુજરાતી' },
+  { code: 'he-IL', name: 'Hebrew', nativeName: 'עברית' },
   { code: 'hi-IN', name: 'Hindi', nativeName: 'हिन्दी' },
   { code: 'hu-HU', name: 'Hungarian', nativeName: 'Magyar' },
+  { code: 'hy-AM', name: 'Armenian', nativeName: 'Հայերեն' },
   { code: 'id-ID', name: 'Indonesian', nativeName: 'Bahasa Indonesia' },
+  { code: 'is-IS', name: 'Icelandic', nativeName: 'Íslenska' },
   { code: 'it-IT', name: 'Italian', nativeName: 'Italiano (Italia)' },
   { code: 'ja-JP', name: 'Japanese', nativeName: '日本語 (日本)' },
+  { code: 'kk-KZ', name: 'Kazakh', nativeName: 'Қазақ тілі' },
   { code: 'kn-IN', name: 'Kannada', nativeName: 'ಕನ್ನಡ' },
   { code: 'ko-KR', name: 'Korean', nativeName: '한국어 (대한민국)' },
   { code: 'lt-LT', name: 'Lithuanian', nativeName: 'Lietuvių' },
+  { code: 'lv-LV', name: 'Latvian', nativeName: 'Latviešu' },
+  { code: 'mk-MK', name: 'Macedonian', nativeName: 'Македонски' },
   { code: 'ml-IN', name: 'Malayalam', nativeName: 'മലയാളം' },
   { code: 'mr-IN', name: 'Marathi', nativeName: 'मराठी' },
+  { code: 'ms-MY', name: 'Malay', nativeName: 'Bahasa Melayu' },
   { code: 'nb-NO', name: 'Norwegian Bokmål', nativeName: 'Norsk bokmål' },
+  { code: 'ne-NP', name: 'Nepali', nativeName: 'नेपाली' },
+  { code: 'nl-NL', name: 'Dutch', nativeName: 'Nederlands' },
   { code: 'or-IN', name: 'Odia', nativeName: 'ଓଡ଼ିଆ' },
   { code: 'pa-IN', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ' },
   { code: 'pl-PL', name: 'Polish', nativeName: 'Polski' },
@@ -47,33 +61,34 @@ export const MAI_TRANSCRIBE_LANGUAGES = [
   { code: 'ru-RU', name: 'Russian', nativeName: 'Русский' },
   { code: 'sk-SK', name: 'Slovak', nativeName: 'Slovenčina' },
   { code: 'sl-SI', name: 'Slovenian', nativeName: 'Slovenščina' },
-  { code: 'es-ES', name: 'Spanish', nativeName: 'Español (España)' },
   { code: 'sv-SE', name: 'Swedish', nativeName: 'Svenska' },
+  { code: 'sw-KE', name: 'Swahili', nativeName: 'Kiswahili' },
   { code: 'ta-IN', name: 'Tamil', nativeName: 'தமிழ்' },
   { code: 'te-IN', name: 'Telugu', nativeName: 'తెలుగు' },
   { code: 'th-TH', name: 'Thai', nativeName: 'ไทย' },
   { code: 'tr-TR', name: 'Turkish', nativeName: 'Türkçe' },
   { code: 'uk-UA', name: 'Ukrainian', nativeName: 'Українська' },
+  { code: 'ur-PK', name: 'Urdu', nativeName: 'اردو' },
   { code: 'vi-VN', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
+  { code: 'yue-HK', name: 'Cantonese', nativeName: '粵語' },
+  { code: 'zh-CN', name: 'Chinese', nativeName: '中文 (简体)' },
 ];
+
+export interface MAITranscribeOptions {
+  enableDiarization?: boolean;
+}
 
 interface UseMAITranscribeReturn {
   state: STTState;
   transcript: FastTranscript | null;
   error: string;
   progress: number;
-  transcribe: (audioFile: File | Blob, language: string) => Promise<void>;
+  transcribe: (audioFile: File | Blob, language: string, options?: MAITranscribeOptions) => Promise<void>;
   reset: () => void;
 }
 
-interface TranscriptionApiError extends Error {
-  status?: number;
-  code?: string;
-  responseText?: string;
-}
-
 /**
- * Hook for MAI-Transcribe-1.5 speech transcription via LLM Speech API
+ * Hook for MAI-Transcribe-2 speech transcription via LLM Speech API
  */
 export function useMAITranscribe(settings: AzureSettings): UseMAITranscribeReturn {
   const [state, setState] = useState<STTState>('idle');
@@ -83,7 +98,8 @@ export function useMAITranscribe(settings: AzureSettings): UseMAITranscribeRetur
 
   const transcribe = useCallback(async (
     audioFile: File | Blob,
-    language: string
+    language: string,
+    options: MAITranscribeOptions = {}
   ) => {
     try {
       setState('processing');
@@ -92,7 +108,7 @@ export function useMAITranscribe(settings: AzureSettings): UseMAITranscribeRetur
 
       // Validate file size (300 MB limit)
       if (audioFile.size > MAI_TRANSCRIBE_MAX_FILE_SIZE_BYTES) {
-        throw new Error('Audio file must be less than 300 MB for MAI-Transcribe-1.5');
+        throw new Error('Audio file must be less than 300 MB for MAI-Transcribe-2');
       }
 
       setProgress(10);
@@ -101,32 +117,20 @@ export function useMAITranscribe(settings: AzureSettings): UseMAITranscribeRetur
       const wavBlob = await convertToWav16kHz(audioFile);
       setProgress(30);
 
-      // Call LLM Speech API endpoint with MAI-Transcribe-1.5 model
+      // Call LLM Speech API endpoint with MAI-Transcribe-2 model
       const endpoint = `https://${settings.region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2025-10-15`;
 
       setProgress(50);
 
-      const definition = buildMAITranscribeDefinition(language, true);
-      console.log('MAI-Transcribe-1.5 API Request:', definition);
+      const definition = buildMAITranscribeDefinition(language, options);
+      console.log('MAI-Transcribe-2 API Request:', definition);
 
-      let result: any;
-      try {
-        result = await postTranscription(endpoint, settings.apiKey, wavBlob, definition);
-      } catch (err: any) {
-        if (!isEnhancedModelUnsupportedError(err)) {
-          throw err;
-        }
-
-        const fallbackDefinition = buildMAITranscribeDefinition(language, false);
-        console.warn('MAI-Transcribe-1.5 model flag is not supported by this API/resource yet; retrying enhanced transcription without model.', err.responseText || err.message);
-        console.log('MAI-Transcribe-1.5 API Fallback Request:', fallbackDefinition);
-        result = await postTranscription(endpoint, settings.apiKey, wavBlob, fallbackDefinition);
-      }
+      const result = await postTranscription(endpoint, settings.apiKey, wavBlob, definition);
 
       setProgress(70);
       setProgress(90);
 
-      console.log('MAI-Transcribe-1.5 API Response:', result);
+      console.log('MAI-Transcribe-2 API Response:', result);
 
       // Parse the transcription result
       const parsedTranscript = parseTranscriptResult(result, language);
@@ -158,17 +162,24 @@ export function useMAITranscribe(settings: AzureSettings): UseMAITranscribeRetur
   };
 }
 
-function buildMAITranscribeDefinition(language: string, includeModel: boolean): Record<string, any> {
+function buildMAITranscribeDefinition(
+  language: string,
+  options: MAITranscribeOptions
+): Record<string, any> {
   const definition: Record<string, any> = {
     enhancedMode: {
       enabled: true,
+      model: MAI_TRANSCRIBE_MODEL,
+      modelOptions: {
+        timestamps: 'word',
+      },
     }
   };
 
-  if (includeModel) {
-    definition.enhancedMode.model = MAI_TRANSCRIBE_MODEL;
-  } else {
-    definition.enhancedMode.task = 'transcribe';
+  if (options.enableDiarization) {
+    definition.diarization = {
+      enabled: true,
+    };
   }
 
   if (language !== 'auto') {
@@ -197,40 +208,15 @@ async function postTranscription(
   });
 
   if (!response.ok) {
-    throw await createApiError(response);
+    const responseText = await response.text();
+    throw new Error(`API request failed (${response.status}): ${responseText}`);
   }
 
   return response.json();
 }
 
-async function createApiError(response: Response): Promise<TranscriptionApiError> {
-  const responseText = await response.text();
-  let code: string | undefined;
-  let message = responseText;
-
-  try {
-    const parsed = JSON.parse(responseText);
-    code = parsed.code;
-    message = parsed.message || responseText;
-  } catch {
-    // Keep the raw response text when the service doesn't return JSON.
-  }
-
-  const error = new Error(`API request failed (${response.status}): ${message}`) as TranscriptionApiError;
-  error.status = response.status;
-  error.code = code;
-  error.responseText = responseText;
-  return error;
-}
-
-function isEnhancedModelUnsupportedError(error: TranscriptionApiError): boolean {
-  return error.status === 400 &&
-    error.code === 'InvalidRequest' &&
-    error.responseText?.includes('Enhanced mode with model is currently not supported yet') === true;
-}
-
 /**
- * Parse MAI-Transcribe-1.5 API response (same format as LLM Speech)
+ * Parse MAI-Transcribe-2 API response (same format as LLM Speech)
  */
 function parseTranscriptResult(apiResponse: any, language: string): FastTranscript {
   let fullText = '';
@@ -258,6 +244,7 @@ function parseTranscriptResult(apiResponse: any, language: string): FastTranscri
       }));
 
       const locale = phrase.locale;
+      const speaker = phrase.speaker;
 
       return {
         text,
@@ -265,7 +252,8 @@ function parseTranscriptResult(apiResponse: any, language: string): FastTranscri
         duration,
         confidence,
         words,
-        locale
+        locale,
+        speaker
       };
     }).filter((seg: any) => seg.text);
   }

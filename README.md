@@ -14,7 +14,7 @@ A feature-rich web application showcasing Microsoft Azure's voice and speech AI 
 | **Text to Speech** | Convert text to speech with 400+ premium Azure voices. Word highlighting, SSML support, voice styles, adjustable rate/pitch/volume, voice filtering by language/gender/type, MP3 export. 90+ locales |
 | **Multi Talker** | Generate multi-speaker conversations with automatic SSML generation and turn-taking. 9 languages with pre-built presets. Uses DragonHDLatestNeural model |
 | **Voice Changer** | Transform audio to different voices using 28+ conversion targets including Turbo Multilingual models. Supports audio upload and download |
-| **Speech to Text** | Transcribe audio with 4 models: Realtime (145 locales), Fast Transcription (95 languages), LLM Speech, and Whisper. Speaker diarization, word-level timestamps, WER testing, export to TXT/SRT/VTT |
+| **Speech to Text** | Transcribe audio with Realtime, Fast Transcription, LLM Speech, and MAI-Transcribe-2 (60 languages). Speaker diarization, word-level timestamps, WER testing, export to TXT/SRT/VTT |
 | **Video Translation** | Translate video content with voice dubbing and lip-sync. Subtitle generation, speaker count configuration, iteration support for refinement |
 
 ### Voice Agent
