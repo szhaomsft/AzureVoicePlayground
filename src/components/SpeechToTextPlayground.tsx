@@ -16,6 +16,8 @@ import { AudioUploader } from './AudioUploader';
 import { AudioRecorder } from './AudioRecorder';
 import { getAudioDuration } from '../utils/audioUtils';
 
+const MAI_TRANSCRIBE_MAX_FILE_SIZE_BYTES = 300 * 1024 * 1024;
+
 interface SpeechToTextPlaygroundProps {
   settings: AzureSettings;
   onSettingsChange: (settings: Partial<AzureSettings>) => void;
@@ -262,6 +264,11 @@ export function SpeechToTextPlayground({
                 file={audioSource instanceof File ? audioSource : null}
                 onFileChange={handleAudioFileChange}
                 disabled={!isConfigured}
+                maxFileSizeBytes={
+                  selectedModel === 'mai-transcribe'
+                    ? MAI_TRANSCRIBE_MAX_FILE_SIZE_BYTES
+                    : undefined
+                }
               />
             </div>
 

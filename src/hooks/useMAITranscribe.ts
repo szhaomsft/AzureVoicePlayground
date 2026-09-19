@@ -108,7 +108,7 @@ export function useMAITranscribe(settings: AzureSettings): UseMAITranscribeRetur
 
       // Validate file size (300 MB limit)
       if (audioFile.size > MAI_TRANSCRIBE_MAX_FILE_SIZE_BYTES) {
-        throw new Error('Audio file must be less than 300 MB for MAI-Transcribe-2');
+        throw new Error('Audio file must be at most 300 MB for MAI-Transcribe-2');
       }
 
       setProgress(10);

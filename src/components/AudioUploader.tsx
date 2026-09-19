@@ -4,6 +4,7 @@ interface AudioUploaderProps {
   file: File | null;
   onFileChange: (file: File | null) => void;
   disabled?: boolean;
+  maxFileSizeBytes?: number;
 }
 
 const ACCEPTED_FORMATS = [
@@ -23,9 +24,14 @@ const ACCEPTED_FORMATS = [
   'video/x-msvideo',
 ];
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+const DEFAULT_MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
-export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderProps) {
+export function AudioUploader({
+  file,
+  onFileChange,
+  disabled,
+  maxFileSizeBytes = DEFAULT_MAX_FILE_SIZE_BYTES,
+}: AudioUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
@@ -89,12 +95,12 @@ export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderPro
     }
 
     // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      return `File size must be less than 100 MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)} MB.`;
+    if (file.size > maxFileSizeBytes) {
+      return `File size must be at most ${formatFileSize(maxFileSizeBytes)}. Your file is ${formatFileSize(file.size)}.`;
     }
 
     return null;
-  }, []);
+  }, [maxFileSizeBytes]);
 
   const handleFile = useCallback(
     (file: File) => {
@@ -263,7 +269,9 @@ export function AudioUploader({ file, onFileChange, disabled }: AudioUploaderPro
             <p className="text-gray-600 mb-1">
               <span className="font-medium text-blue-600">Click to browse</span> or drag and drop
             </p>
-            <p className="text-sm text-gray-500">WAV, MP3, OGG, FLAC, WebM, MP4, MOV, AVI (max 100 MB)</p>
+            <p className="text-sm text-gray-500">
+              WAV, MP3, OGG, FLAC, WebM, MP4, MOV, AVI (max {formatFileSize(maxFileSizeBytes)})
+            </p>
           </div>
         )}
       </div>
