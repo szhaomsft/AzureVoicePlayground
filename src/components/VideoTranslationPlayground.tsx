@@ -5,6 +5,7 @@ import { VideoTranslationConfig, VoiceKind } from '../types/videoTranslation'
 import { BlobStorageConfig } from '../types/voiceConversion'
 import { uploadToBlob, loadBlobConfig, saveBlobConfig, validateBlobConfig } from '../utils/blobStorage'
 import { AzureSettings } from '../types/azure'
+import { ProductIntroduction } from './ProductIntroduction'
 
 interface VideoTranslationPlaygroundProps {
   settings: AzureSettings
@@ -615,6 +616,9 @@ export function VideoTranslationPlayground({ settings, isConfigured }: VideoTran
                 </div>
               </div>
             )}
+
+            {/* Product Introduction */}
+            <ProductIntroduction mode="video-translation" />
 
             {/* History Panel */}
             <div className="bg-white border border-gray-200 rounded-lg">

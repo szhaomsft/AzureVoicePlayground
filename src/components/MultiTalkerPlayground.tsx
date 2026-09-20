@@ -9,6 +9,7 @@ import { getAudioDuration } from '../utils/audioUtils';
 import { PODCAST_PRESETS, adaptPresetToSpeakers } from '../utils/podcastPresets';
 import { generatePodcastScript, AzureOpenAIConfig } from '../utils/azureOpenAI';
 import { fetchVoiceList } from '../utils/voiceList';
+import { ProductIntroduction } from './ProductIntroduction';
 
 interface MultiTalkerPlaygroundProps {
   settings: AzureSettings;
@@ -585,6 +586,9 @@ ${capitalizedSpeaker2}: ha ha ha, Precisely. It's all about being… um, reliabl
             </>
           )}
         </div>
+
+        {/* Product Introduction */}
+        <ProductIntroduction mode="multi-talker" />
 
         {/* History Panel */}
         <div className="border-t border-gray-200 bg-gray-50">

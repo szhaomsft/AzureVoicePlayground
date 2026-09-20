@@ -12,6 +12,7 @@ import { getAudioDuration } from '../utils/audioUtils';
 import { VoiceConversionSelector } from './VoiceConversionSelector';
 import { AudioUploader } from './AudioUploader';
 import { ConversionHistoryPanel } from './ConversionHistoryPanel';
+import { ProductIntroduction } from './ProductIntroduction';
 import { VoiceConversionFeedbackButton } from './VoiceConversionFeedbackButton';
 
 interface VoiceChangerPlaygroundProps {
@@ -377,6 +378,9 @@ export function VoiceChangerPlayground({
             </>
           )}
         </div>
+
+        {/* Product Introduction */}
+        <ProductIntroduction mode="voice-changer" />
 
         {/* History Panel */}
         <ConversionHistoryPanel

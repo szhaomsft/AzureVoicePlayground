@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { ProductIntroduction } from './ProductIntroduction';
 import { GeminiClient, type ConnectionStatus } from '../lib/geminiLive/geminiClient';
 import { GeminiAudioHandler } from '../lib/geminiLive/audioHandler';
 import { SAMPLE_PRODUCT_DATA } from '../data/productData';
@@ -636,6 +637,8 @@ Keep your responses concise and natural for voice interaction. Focus on the most
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
+        {/* Product Introduction */}
+        <ProductIntroduction mode="gemini-live" />
       </div>
 
       {/* Right side - Configuration Panel */}

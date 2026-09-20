@@ -15,6 +15,7 @@ import { ExportTranscript } from './ExportTranscript';
 import { AudioUploader } from './AudioUploader';
 import { AudioRecorder } from './AudioRecorder';
 import { getAudioDuration } from '../utils/audioUtils';
+import { ProductIntroduction } from './ProductIntroduction';
 
 const MAI_TRANSCRIBE_MAX_FILE_SIZE_BYTES = 300 * 1024 * 1024;
 
@@ -363,6 +364,9 @@ export function SpeechToTextPlayground({
               />
             )}
           </div>
+
+          {/* Product Introduction */}
+          <ProductIntroduction mode="speech-to-text" />
         </div>
 
         {/* Right side - Recognition Config */}

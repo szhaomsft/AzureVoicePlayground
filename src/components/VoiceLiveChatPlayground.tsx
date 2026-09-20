@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { ProductIntroduction } from './ProductIntroduction';
 import {
   DEFAULT_CHAT_CONFIG,
   CHAT_MODEL_OPTIONS,
@@ -620,6 +621,8 @@ export function VoiceLiveChatPlayground({ endpoint, apiKey }: VoiceLiveChatPlayg
           </div>
           <p className="text-xs text-gray-500">{statusText || 'Ready'}</p>
         </div>
+        {/* Product Introduction */}
+        <ProductIntroduction mode="voice-live-chat" />
       </div>
 
       {/* Right side - Configuration Panel */}

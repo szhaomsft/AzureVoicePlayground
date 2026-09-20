@@ -4,6 +4,7 @@ import { PodcastContentSource, MAX_CONTENT_FILE_SIZE, MAX_PLAIN_TEXT_LENGTH } fr
 interface PodcastContentUploaderProps {
   onContentChange: (source: PodcastContentSource | null) => void;
   disabled?: boolean;
+  mdSupported?: boolean;
 }
 
 type InputTab = 'text' | 'url' | 'file';
@@ -11,7 +12,7 @@ type InputTab = 'text' | 'url' | 'file';
 // UI performance limit: 6M characters (~6MB text)
 const MAX_UI_CHAR_COUNT = 6 * 1024 * 1024;
 
-export function PodcastContentUploader({ onContentChange, disabled = false }: PodcastContentUploaderProps) {
+export function PodcastContentUploader({ onContentChange, disabled = false, mdSupported = false }: PodcastContentUploaderProps) {
   const [activeTab, setActiveTab] = useState<InputTab>('text');
   const [textInput, setTextInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -76,8 +77,14 @@ export function PodcastContentUploader({ onContentChange, disabled = false }: Po
       }
 
       const fileName = source.file.name.toLowerCase();
-      if (!fileName.endsWith('.pdf') && !fileName.endsWith('.txt')) {
-        setError('Only PDF and TXT files are supported.');
+      const allowedExtensions = ['.pdf', '.txt'];
+      if (mdSupported) {
+        allowedExtensions.push('.md');
+      }
+      if (!allowedExtensions.some(ext => fileName.endsWith(ext))) {
+        setError(mdSupported
+          ? 'Only PDF, TXT, and Markdown (.md) files are supported.'
+          : 'Only PDF and TXT files are supported. Markdown (.md) requires API version >= 1.3.8.');
         return;
       }
     }
@@ -259,7 +266,9 @@ export function PodcastContentUploader({ onContentChange, disabled = false }: Po
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
             <div className="mt-2 text-xs text-gray-500">
-              Enter a public URL to a PDF or HTML document
+              {mdSupported
+                ? 'Enter a public URL to a .txt, .md, or .pdf file'
+                : 'Enter a public URL to a .txt or .pdf file'}
             </div>
           </div>
         )}
@@ -296,7 +305,7 @@ export function PodcastContentUploader({ onContentChange, disabled = false }: Po
                 <p className="mt-2 text-sm text-gray-600">
                   <span className="font-medium text-indigo-600">Click to upload</span> or drag and drop
                 </p>
-                <p className="mt-1 text-xs text-gray-500">PDF or TXT files up to 50MB</p>
+                <p className="mt-1 text-xs text-gray-500">{mdSupported ? 'PDF, TXT, or Markdown (.md) files up to 50MB' : 'PDF or TXT files up to 50MB'}</p>
               </div>
             ) : (
               <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
@@ -337,7 +346,7 @@ export function PodcastContentUploader({ onContentChange, disabled = false }: Po
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.txt"
+              accept={mdSupported ? '.pdf,.txt,.md' : '.pdf,.txt'}
               onChange={handleFileInputChange}
               disabled={disabled}
               className="hidden"

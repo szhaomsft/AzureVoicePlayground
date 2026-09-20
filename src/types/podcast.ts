@@ -5,7 +5,7 @@
 export type HostType = 'OneHost' | 'TwoHosts';
 export type PodcastStyle = 'Default' | 'Professional' | 'Casual';
 export type PodcastLength = 'VeryShort' | 'Short' | 'Medium' | 'Long' | 'VeryLong';
-export type FileFormat = 'Txt' | 'Pdf';
+export type FileFormat = 'Txt' | 'Pdf' | 'Md';
 export type OperationStatus = 'NotStarted' | 'Running' | 'Succeeded' | 'Failed';
 export type GenerationStatus =
   | 'idle'
@@ -21,7 +21,7 @@ export interface PodcastContent {
   url?: string;            // For AzureStorageBlobPublicUrl
   base64Text?: string;     // For content > 1MB and <= 8MB (base64 encoded)
   tempFileId?: string;     // For content > 8MB (uploaded via temp file API)
-  fileFormat?: FileFormat; // File format (Txt or Pdf)
+  fileFormat?: FileFormat; // File format (Txt, Pdf, or Md)
 }
 
 export interface PodcastTTS {
